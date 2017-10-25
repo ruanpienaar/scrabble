@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scrabble</title>
+
+    <style>
+        .scrabble_square {
+            width: 45px;
+            height: 50px;
+            background-color: #ffe2b7;
+            text-align: center;
+        }
+        .player_tiles{
+            width: 45px;
+            height: 50px;
+            background-color: #ffe2b7;
+            text-align: center;
+        }
+        .middle_square {
+            background: url("star.png") no-repeat center;
+        }
+        .double_letter_score {
+            background-color: #8baee5;
+            content: "DLS";
+        }
+        .double_word_score {
+            background-color: #efc0b6;
+        }
+        .tripple_letter_score {
+            background-color: #3878e0;
+        }
+        .tripple_word_score {
+            background-color: #e24726;
+        }.
+        .inlineTable {
+            display: inline-block;
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+    </style>
+
+    <!-- Jquery -->
+    <script 
+    src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
+    </script>
+
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
+
+    <!-- Optional theme -->
+    <!-- <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous"> -->
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <!-- Jquery UI -->
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js"></script>
+
+    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript">
+    </script>
+
+</head>
+<body>
+    <div class="container">
+        <h1>Scrabble</h1>
+    </div>
+    <div class="container" style="text-align: center;">
+        <table id="scrabble_board" class="inlineTable"  style="float:left;">
+        </table>
+        <table id="scrabble_player_tiles" class="inlineTable" style=" padding-left: 100px;">
+        </table>
+    </div>
+</body>
+</html>

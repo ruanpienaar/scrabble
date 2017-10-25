@@ -1,0 +1,12 @@
+{application, scrabble,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { scrabble_app, []}},
+  {env, []}
+ ]}.
