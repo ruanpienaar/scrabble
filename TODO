@@ -1,0 +1,176 @@
+Front end:
+drag and drop
+  - validation
+  - button to submit word
+  - timer, so that player will have to finish
+fetching the existing board when refreshed
+updating the board when other players have played
+filling the player hand from WS
+
+Back end:
+keep track who's turn it is
+scoring
+creating the letter bag, for player to retrieve letters from
+word validation lookup
+randomising the player hand
+
+Dictionary Lookup on word:
+https://developer.oxforddictionaries.com/documentation
+
+--- ~ » curl -X GET --header "Accept: application/json" --header "app_id: ceed7096" --header "app_key: 86d446370839bb558e9daf64d4b3960e" "https://od-api.oxforddictionaries.com:443/api/v1/entries/en/ble"
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<title>404 Not Found</title>
+<h1>Not Found</h1>
+<p>No entry available for 'ble' in 'en'</p>
+--- ~ » curl -X GET --header "Accept: application/json" --header "app_id: ceed7096" --header "app_key: 86d446370839bb558e9daf64d4b3960e" "https://od-api.oxforddictionaries.com:443/api/v1/entries/en/bleak"
+{
+    "metadata": {
+        "provider": "Oxford University Press"
+    },
+    "results": [
+        {
+            "id": "bleak",
+            "language": "en",
+            "lexicalEntries": [
+                {
+                    "entries": [
+                        {
+                            "etymologies": [
+                                "Old English blāc ‘shining, white’, or in later use from synonymous Old Norse bleikr; ultimately of Germanic origin and related to bleach"
+                            ],
+                            "grammaticalFeatures": [
+                                {
+                                    "text": "Positive",
+                                    "type": "Degree"
+                                }
+                            ],
+                            "homographNumber": "100",
+                            "senses": [
+                                {
+                                    "definitions": [
+                                        "(of an area of land) lacking vegetation and exposed to the elements"
+                                    ],
+                                    "examples": [
+                                        {
+                                            "text": "a bleak and barren moor"
+                                        }
+                                    ],
+                                    "id": "m_en_gbus0103000.005",
+                                    "subsenses": [
+                                        {
+                                            "definitions": [
+                                                "(of a building or room) charmless and inhospitable; dreary"
+                                            ],
+                                            "examples": [
+                                                {
+                                                    "text": "he looked round the bleak little room in despair"
+                                                }
+                                            ],
+                                            "id": "m_en_gbus0103000.009"
+                                        },
+                                        {
+                                            "definitions": [
+                                                "(of the weather) cold and miserable"
+                                            ],
+                                            "examples": [
+                                                {
+                                                    "text": "a bleak midwinter's day"
+                                                }
+                                            ],
+                                            "id": "m_en_gbus0103000.010"
+                                        },
+                                        {
+                                            "definitions": [
+                                                "(of a situation) not hopeful or encouraging; unlikely to have a favourable outcome"
+                                            ],
+                                            "examples": [
+                                                {
+                                                    "text": "he paints a bleak picture of a company that has lost its way"
+                                                },
+                                                {
+                                                    "text": "the future looks bleak"
+                                                }
+                                            ],
+                                            "id": "m_en_gbus0103000.011"
+                                        },
+                                        {
+                                            "definitions": [
+                                                "(of a person's expression) cold and forbidding"
+                                            ],
+                                            "examples": [
+                                                {
+                                                    "text": "his mouth was set and his eyes were bleak"
+                                                }
+                                            ],
+                                            "id": "m_en_gbus0103000.012"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "language": "en",
+                    "lexicalCategory": "Adjective",
+                    "pronunciations": [
+                        {
+                            "audioFile": "http://audio.oxforddictionaries.com/en/mp3/bleak_gb_1.mp3",
+                            "dialects": [
+                                "British English"
+                            ],
+                            "phoneticNotation": "IPA",
+                            "phoneticSpelling": "bliːk"
+                        }
+                    ],
+                    "text": "bleak"
+                },
+                {
+                    "entries": [
+                        {
+                            "etymologies": [
+                                "late 15th century: from Old Norse bleikja"
+                            ],
+                            "grammaticalFeatures": [
+                                {
+                                    "text": "Singular",
+                                    "type": "Number"
+                                }
+                            ],
+                            "homographNumber": "200",
+                            "senses": [
+                                {
+                                    "definitions": [
+                                        "a small silvery shoaling fish of the carp family, found in Eurasian rivers."
+                                    ],
+                                    "domains": [
+                                        "Fish"
+                                    ],
+                                    "id": "m_en_gbus0103010.005",
+                                    "notes": [
+                                        {
+                                            "text": "Genera \"Alburnus\" and \"Chalcalburnus\", family \"Cyprinidae\": several species, in particular \"A. alburnus\"",
+                                            "type": "technicalNote"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "language": "en",
+                    "lexicalCategory": "Noun",
+                    "pronunciations": [
+                        {
+                            "audioFile": "http://audio.oxforddictionaries.com/en/mp3/bleak_gb_1.mp3",
+                            "dialects": [
+                                "British English"
+                            ],
+                            "phoneticNotation": "IPA",
+                            "phoneticSpelling": "bliːk"
+                        }
+                    ],
+                    "text": "bleak"
+                }
+            ],
+            "type": "headword",
+            "word": "bleak"
+        }
+    ]

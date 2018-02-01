@@ -4,7 +4,14 @@
     <title>Scrabble</title>
 
     <style>
-        .scrabble_square {
+        .scrabble_board_square {
+            width: 45px;
+            height: 50px;
+            background-color: #ffe2b7;
+            text-align: center;
+            z-index: 2
+        }
+        .scrabble_hand_square {
             width: 45px;
             height: 50px;
             background-color: #ffe2b7;
@@ -36,11 +43,12 @@
             display: inline-block;
             border: 1px solid black;
             border-collapse: collapse;
+            z-index: 1;
         }
     </style>
 
     <!-- Jquery -->
-    <script 
+    <script
     src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
     </script>
 
@@ -67,11 +75,281 @@
     <div class="container">
         <h1>Scrabble</h1>
     </div>
-    <div class="container" style="text-align: center;">
-        <table id="scrabble_board" class="inlineTable"  style="float:left;">
+    <div class="container">
+        <p>Tiles in Hand</p>
+        <table class="inlineTable">
+            <tbody id="scrabble_player_tiles">
+
+            </tbody>
         </table>
-        <table id="scrabble_player_tiles" class="inlineTable" style=" padding-left: 100px;">
+
+        <p>Scrabble Board</p>
+        <table id="scrabble_board" class="inlineTable">
+            <tbody>
+                <tr>
+                    <td id="X1Y1" class="scrabble_board_square tripple_word_score">TWS</td>
+                    <td id="X2Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y1" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X5Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y1" class="scrabble_board_square tripple_word_score">TWS</td>
+                    <td id="X9Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y1" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X13Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y1" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y1" class="scrabble_board_square tripple_word_score">TWS</td>
+                </tr>
+                <tr>
+                    <td id="X1Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y2" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X3Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y2" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X7Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y2" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X11Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y2" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y2" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X15Y2" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y3" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X4Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y3" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X8Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y3" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X10Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y3" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X14Y3" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y3" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y4" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X2Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y4" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X5Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y4" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X9Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y4" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X13Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y4" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y4" class="scrabble_board_square double_letter_score">DLS</td>
+                </tr>
+                <tr>
+                    <td id="X1Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y5" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X6Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y5" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X12Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y5" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y5" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y6" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X3Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y6" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X7Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y6" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X11Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y6" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y6" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X15Y6" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y7" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X4Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y7" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X8Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y7" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X10Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y7" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X14Y7" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y7" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y8" class="scrabble_board_square tripple_word_score">TWS</td>
+                    <td id="X2Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y8" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X5Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y8" class="scrabble_board_square middle_square">&nbsp;</td>
+                    <td id="X9Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y8" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X13Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y8" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y8" class="scrabble_board_square tripple_word_score">TWS</td>
+                </tr>
+                <tr>
+                    <td id="X1Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y9" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X4Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y9" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X8Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y9" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X10Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y9" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X14Y9" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y9" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y10" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X3Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y10" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X7Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y10" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X11Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y10" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y10" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X15Y10" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y11" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X6Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y11" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X12Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y11" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y11" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y12" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X2Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y12" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X5Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y12" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X9Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y12" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X13Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y12" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y12" class="scrabble_board_square double_letter_score">DLS</td>
+                </tr>
+                <tr>
+                    <td id="X1Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y13" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X4Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y13" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X8Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y13" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X10Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y13" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X14Y13" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y13" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X2Y14" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X3Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X5Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y14" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X7Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X9Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y14" class="scrabble_board_square tripple_letter_score">TLS</td>
+                    <td id="X11Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X13Y14" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y14" class="scrabble_board_square double_word_score">DWS</td>
+                    <td id="X15Y14" class="scrabble_board_square">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td id="X1Y15" class="scrabble_board_square tripple_word_score">TWS</td>
+                    <td id="X2Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X3Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X4Y15" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X5Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X6Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X7Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X8Y15" class="scrabble_board_square tripple_word_score">TWS</td>
+                    <td id="X9Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X10Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X11Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X12Y15" class="scrabble_board_square double_letter_score">DLS</td>
+                    <td id="X13Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X14Y15" class="scrabble_board_square">&nbsp;</td>
+                    <td id="X15Y15" class="scrabble_board_square tripple_word_score">TWS</td>
+                </tr>
+            </tbody>
         </table>
     </div>
+
+    <!-- <textarea cols="100" rows="40" id="obj">
+    </textarea>
+
+    <textarea cols="100" rows="40" id="obj2">
+    </textarea> -->
+
 </body>
 </html>
