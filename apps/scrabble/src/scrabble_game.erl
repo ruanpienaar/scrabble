@@ -59,10 +59,12 @@ handle_call({player_take_x_tiles, PlayerNmr, Amount}, _From,
         tile_bag => NewBag,
         players => UpdatedPlayers
     }};
-handle_call({player_places_tile, Player, Tile, X, Y}, _From, State) ->
+handle_call({player_places_tile, Player, Tile, X, Y}, _From, #{ board := Board } = State) ->
+    %% TODO: update board...
+    NewBoard = Board,
     {reply, ok, State#{
-        board = NewBoard
-    }}
+        board => NewBoard
+    }};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
