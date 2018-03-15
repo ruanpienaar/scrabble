@@ -54,8 +54,9 @@ $(document).ready(function(){
         spid = Cookies.get('scrabble_player_id');
         guid = guid();
         webSocket.send(JSON.stringify(
-            {'register_lobby_player': spid,
-             'guid': guid
+            {
+                'register_lobby_player': spid,
+                'guid': guid
             }
         ));
     }

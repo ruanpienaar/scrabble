@@ -26,7 +26,12 @@ handle_msg(ReqJson) ->
     io:format("[~p] received ~p Json~n", [?MODULE, Json]),
     handle_decoded(Json).
 
-handle_decoded([{<<"register_lobby_player">>, SPID}]) ->
+% [scrabble_ws_api] received [{<<"register_lobby_player">>,<<"Ruan">>},
+%                             {<<"guid">>,
+%                              <<"550101335373664032821865373641080192024">>}] Json
+
+handle_decoded([{<<"register_lobby_player">>, PlayerName},
+                {<<"guid">>, GUID}]) ->
     ok;
 handle_decoded(Json) ->
     jsx:encode(Json).
