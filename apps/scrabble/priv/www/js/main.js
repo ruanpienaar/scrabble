@@ -37,17 +37,10 @@ $(document).ready(function(){
     }
 
     function onOpen(event) {
-        //webSocket.send('Hello, World!');
         request_player_hand();
     }
 
     function onMessage(event) {
-        // console.log('websocket opened');
-        // get hand...
-        //request_player_hand();
-
-        // if(){
-        // }
         console.log(event.data);
     }
 

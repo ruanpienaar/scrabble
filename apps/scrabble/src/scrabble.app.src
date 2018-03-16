@@ -5,7 +5,12 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  cowlib,
+                  cowboy,
+                  ranch,
+                  jsx,
+                  gproc
                  ]},
   {mod, { scrabble_app, []}},
   {env, []}
