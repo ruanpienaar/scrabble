@@ -12,7 +12,7 @@ start_link() ->
 init(State) ->
     {ok, State}.
 
-handle_call({add_player, }, _From, State) ->
+handle_call({add_player, _}, _From, State) ->
     {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
