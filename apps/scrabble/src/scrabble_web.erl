@@ -30,6 +30,7 @@ routes() ->
 
             %% Websocket:
             {"/sws", scrabble_ws_api, []},
+            {"/swp", scrabble_wait_ws_api, [erlang:time()]},
 
             {"/[...]", cowboy_static, {priv_dir, scrabble, "/www"}}
         ]

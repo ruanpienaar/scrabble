@@ -1,18 +1,31 @@
 Front end:
-drag and drop
-  - validation
+ ☐ CHange join lobby, to just be a text box, next to the join lobby button
+  ☐ When user has session cookie, and backend restarts, then it seems the user is still with a cookie. When the session starts, and the client has a cookie, send that to the backend to auto-register
   - button to submit word
   - timer, so that player will have to finish
-fetching the existing board when refreshed
-updating the board when other players have played
-filling the player hand from WS
+ ☐ fetching the existing board when refreshed
+ ☐ updating the board when other players have played
+ ☐ filling the player hand from WS
+ ☐ use scrollbars in lobby players, and active games..
+ ☐ WHen joining the lobby, hide the active game DIV row
+ ☐ Download all the CDN javascript and css, and compress
+ ☐ Be able to click game, and join
+ ☐ Deal with websocket closing better, ask the client what to do ?
+ ☐ Generate anon cookie value for use in join-game and spectate
+ ☐ add description why redicting, at the awiting players page..
+ ☐
 
 Back end:
-keep track who's turn it is
-scoring
-creating the letter bag, for player to retrieve letters from
-word validation lookup
-randomising the player hand
+ ☐ Subscribe WS api to games list
+ ☐ keep track who's turn it is
+ ☐ scoring
+ ☐ creating the letter bag, for player to retrieve letters from
+ ☐ word validation lookup
+ ☐ randomising the player hand
+ ☐ persist lobby_games, active_games, and logged in users
+ ☐ remove responses to some requests, like the response for registering a user, don't reply, just use  {ok, State}.
+ ☐ reconsider the players, lobby_games, and games data structures
+ ☐
 
 Dictionary Lookup on word:
 https://developer.oxforddictionaries.com/documentation
@@ -174,3 +187,10 @@ https://developer.oxforddictionaries.com/documentation
             "word": "bleak"
         }
     ]
+
+
+＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
+Archive:
+ ✔ Send ping/echo from client to back-end @done (18-03-17 14:37) @project(Front end)
+ ✔ drag and drop @done (18-03-17 13:53) @project(Front end)
+ ✔ validation @done (18-03-16 21:55) @project(Front end)

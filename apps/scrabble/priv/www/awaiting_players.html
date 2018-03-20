@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Scrabble Lobby</title>
+    <title>Awaiting Players</title>
 
     <style type="text/css">
 
@@ -29,42 +29,16 @@
     <!-- Better Cookie handling -->
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
 
-    <script type="text/javascript" src="js/lobby.js"></script>
+    <script type="text/javascript" src="js/wait.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Scrabble Lobby</h1>
+        <h1>Awaiting Players</h1>
     </div>
     <div class="container">
-        <div class="row">
-            <div class="col-md-4">
-                <h1>1 join</h1>
-                <button id="signout" type="button" class="btn btn-primary">signout</button>
-                <button id="join_lobby" type="button" class="btn btn-primary">Join Lobby</button>
-                <h3>Lobby Players:</h3>
-                <ul id="lobby_players"></ul>
-            </div>
-            <div class="col-md-8">
-                <h1>2 Create/Join a game</h1>
-                <button id="create_new_game" type="button" class="btn btn-primary">New Game</button>
-                <h3>Inactive Games:</h3>
-                <table class="table table-bordered">
-                    <thead>
-                        <th>&nbsp;</th>
-                        <th>Game #</th>
-                        <th>State</th>
-                        <th>Players joined</th>
-                    </thead>
-                    <tbody id="lobby_games">
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="row">
-            <div id="msg" style="display:none">
-                <input id="sumpin" type="text">
-            </div>
-        </div>
+        <div class="row" id="status"></div>
+        Players...
+        <div class="row" id="game"></div>
     </div>
 
 </body>

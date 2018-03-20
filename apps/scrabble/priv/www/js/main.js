@@ -1,11 +1,10 @@
-
+var spid = Cookies.get('scrabble_player_id');
+if (spid == undefined) {
+    alert('Unknown User, going back to lobby...');
+    window.location.href = 'index.html';
+}
 
 $(document).ready(function(){
-    var spid = Cookies.get('scrabble_player_id');
-    if (spid == undefined) {
-        alert('Unknown User, going back to lobby...');
-        window.location.href = 'index.html';
-    }
 
     $('#signout').click(function(){
         // TODO: do websocket call, to remove back-end info too...

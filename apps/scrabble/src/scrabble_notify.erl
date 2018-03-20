@@ -11,7 +11,9 @@
 action(A = {new_lobby_player, PlayerName}) ->
     publish(lobby_players, A);
 action(A = {rem_lobby_player, PlayerName}) ->
-    publish(lobby_players, A).
+    publish(lobby_players, A);
+action(A = new_game) ->
+    publish(lobby_games, A).
 
 % action({node_connected, Node, Cookie}) ->
 %     publish({node_events}, {node_connected, Node, Cookie});
@@ -25,12 +27,12 @@ action(A = {rem_lobby_player, PlayerName}) ->
 %% ----------
 
 subscribe(Topic) when Topic == lobby_players orelse
-                      Topic == lobby_games orelse 
+                      Topic == lobby_games orelse
                       Topic == active_games ->
     gproc:reg({p, l, {?MODULE, Topic}}).
 
 publish(Topic, Data) when Topic == lobby_players orelse
-                          Topic == lobby_games orelse 
+                          Topic == lobby_games orelse
                           Topic == active_games ->
     gproc:send({p, l, {?MODULE, Topic}}, {?MODULE, Topic, Data}).
 
