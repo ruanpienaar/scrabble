@@ -33,12 +33,26 @@
 </head>
 <body>
     <div class="container">
-        <h1>Awaiting Players</h1>
-    </div>
-    <div class="container">
+        <div class="row">
+            <h1>Awaiting Players</h1>
+        </div>
+        <div class="row">
+            <button id="leave" type="button" class="btn btn-primary">
+                Leave Game
+            </button>
+        </div>
+        <div class="row">
+            <button id="ready" type="button" class="btn btn-primary">
+                I'm Ready
+            </button>
+        </div>
         <div class="row" id="status"></div>
-        Players...
-        <div class="row" id="game"></div>
+        <div class="row"><h2>Game Number</h2></div>
+        <div class="row" id="game_number"></div>
+        <div class="row"><h2>Game Players</h2></div>
+        <div class="row" id="game_players"></div>
+        <div class="row"><h2>Game State</h2></div>
+        <div class="row" id="game_state"></div>
     </div>
 
 </body>

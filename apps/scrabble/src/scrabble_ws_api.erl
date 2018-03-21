@@ -86,5 +86,9 @@ handle_decoded(Json) ->
 
 json_lobby_games(AllGames) ->
     maps:fold(fun(K, V, A) ->
+        % #{ players := Players } = V,
+        % GameJsonReady = V#{ players => [Players] },
+        % io:format("~p ~n", [GameJsonReady]),
+        % [GameJsonReady|A]
         [V|A]
     end, [], AllGames).

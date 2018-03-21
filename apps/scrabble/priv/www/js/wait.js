@@ -1,3 +1,8 @@
+s = Cookies.get('scrabble_player_id');
+if(s == undefined){
+    window.location.href = 'index.html';
+}
+
 $(document).ready(function(){
     //console.log('Document Ready...');
 
@@ -55,10 +60,19 @@ $(document).ready(function(){
             }, 5000);
 
         } else if(json_data.hasOwnProperty('awaiting_game')) {
-            $('#game').empty();
-            $('#game_number').html('GAME');
-            $('#game_players').html('GAME');
-            $('#game_state').html('GAME');
+            $('#game_number').empty();
+            $('#game_players').empty();
+            $('#game_state').empty();
+
+            $('#game_number').html(json_data.awaiting_game.number);
+            //$('#game_players').html(json_data.awaiting_game.players);
+            for(var i=json_data.awaiting_game.players.length-1; i >= 0; i--){
+                $('#game_players').append(
+                    '<p>'+json_data.awaiting_game.players[i].spid+'</p>'
+                );
+                //json_data.awaiting_game.players[i];
+            }
+            $('#game_state').html(json_data.awaiting_game.state);
         }
     }
 

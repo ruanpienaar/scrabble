@@ -95,7 +95,11 @@ $(document).ready(function(){
                 var spectate_html = '';
                 var num_html = 'game # '+game_num;
                 var state_html = json_data.lobby_games[i].state;
-                var players_html = json_data.lobby_games[i].players;
+                //var players_html = json_data.lobby_games[i].players;
+                var players_html = '';
+                for (var j = json_data.lobby_games[i].players.length - 1; j >= 0; j--) {
+                    players_html += '<p>'+json_data.lobby_games[i].players[j].spid+'</p>';
+                }
                 $('#lobby_games').append('<tr>'
                     +'<td>'+join_html+spectate_html+'</td>'
                     +'<td>'+num_html+'</td>'

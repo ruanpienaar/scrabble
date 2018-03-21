@@ -1,19 +1,21 @@
 Front end:
+ ☐ Move a player to awaiting_game page, when player is in game, and visits lobby page
  ☐ CHange join lobby, to just be a text box, next to the join lobby button
-  ☐ When user has session cookie, and backend restarts, then it seems the user is still with a cookie. When the session starts, and the client has a cookie, send that to the backend to auto-register
-  - button to submit word
-  - timer, so that player will have to finish
+ ☐ use scrollbars in lobby players, and active games..
+ ☐ Disable new game, if user cookie == undefined
+ ☐ DIsable signout if user cookie == undefined
+ ☐ WHen joining the lobby, hide the active game DIV row
+ ☐ Generate anon cookie value for use in join-game and spectate
+ ✔ Be able to click game, and join @done (18-03-21 15:44)
+ ✔ When user has session cookie, and backend restarts, then it seems the user is still with a cookie. When the session starts, and the client has a cookie, send that to the backend to auto-register @done (18-03-21 15:43)
+ ☐ button to submit word
+ ☐ timer, so that player will have to finish
  ☐ fetching the existing board when refreshed
  ☐ updating the board when other players have played
  ☐ filling the player hand from WS
- ☐ use scrollbars in lobby players, and active games..
- ☐ WHen joining the lobby, hide the active game DIV row
  ☐ Download all the CDN javascript and css, and compress
- ☐ Be able to click game, and join
  ☐ Deal with websocket closing better, ask the client what to do ?
- ☐ Generate anon cookie value for use in join-game and spectate
  ☐ add description why redicting, at the awiting players page..
- ☐
 
 Back end:
  ☐ Subscribe WS api to games list
@@ -25,6 +27,7 @@ Back end:
  ☐ persist lobby_games, active_games, and logged in users
  ☐ remove responses to some requests, like the response for registering a user, don't reply, just use  {ok, State}.
  ☐ reconsider the players, lobby_games, and games data structures
+ ☐ subscribe to players joining game, and send ws json, when players joined.
  ☐
 
 Dictionary Lookup on word:

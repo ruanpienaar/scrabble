@@ -116,7 +116,8 @@ handle_call({join_game, SPID, GameNum}, _From, #{ lobby_games := LGames } = Stat
             {Reply, NewLGames} =
                 case can_planyer_join_game(Game) of
                     true ->
-                        NewGame = set(players, [SPID|get(players, Game)], Game),
+                        NewPlayer = [{spid, SPID}, {game_state, not_ready}],
+                        NewGame = set(players, [NewPlayer|get(players, Game)], Game),
                         {true, set(GameNum, NewGame, LGames)};
                     false ->
                         {false, LGames}
@@ -159,7 +160,16 @@ check_player_in_game(GameNum, SPID, LGames) ->
     case find_game(GameNum, LGames) of
         {ok, Game} ->
             Players = get(players, Game),
-            {lists:member(SPID, Players), Game};
+            % {lists:member(SPID, Players), Game};
+            % {case lists:keyfind(SPID, 1, Players) of
+            %      {SPID, _State} -> true;
+            %      false          -> false
+            %  end,
+            % Game};
+            InGame = lists:member([{spid,SPID},{game_state,not_ready}], Players) orelse
+                     lists:member([{spid,SPID},{game_state,ready}], Players) orelse
+                     lists:member([{spid,SPID},{game_state,in_game}], Players),
+            {InGame, Game};
         error ->
             error
     end.
