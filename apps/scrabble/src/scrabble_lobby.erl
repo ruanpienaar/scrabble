@@ -4,15 +4,14 @@
     start_link/0,
     register_player/2,
     deregister_player/2,
-    all_players/0
-]).
-
--export([
+    all_players/0,
     create_game/0,
     all_games/0,
     join_game/2,
+    leave_game/2,
     spectate_game/2,
-    get_game/1
+    get_game/1,
+    player_ready/2
 ]).
 
 % Reading data API
@@ -47,23 +46,27 @@ deregister_player(SPID, GUID) ->
 all_players() ->
     gen_server:call(?MODULE, {all_players}).
 
-% Games
-
 create_game() ->
     gen_server:call(?MODULE, {create_game}).
 
 all_games() ->
     gen_server:call(?MODULE, {all_games}).
 
-join_game(SPID, GameNum) ->
-    gen_server:call(?MODULE, {join_game, SPID, GameNum}).
+join_game(SPID, GID) ->
+    gen_server:call(?MODULE, {join_game, SPID, GID}).
 
-spectate_game(SPID, GameNum) ->
-    gen_server:call(?MODULE, {spectate_game, SPID, GameNum}).
+leave_game(SPID, GID) ->
+    gen_server:call(?MODULE, {leave_game, SPID, GID}).
+
+spectate_game(SPID, GID) ->
+    gen_server:call(?MODULE, {spectate_game, SPID, GID}).
 
 % return {ok, game_map} | error
-get_game(GameNum) ->
-    gen_server:call(?MODULE, {get_game, GameNum}).
+get_game(GID) ->
+    gen_server:call(?MODULE, {get_game, GID}).
+
+player_ready(SPID, GID) ->
+    gen_server:call(?MODULE, {player_ready, SPID, GID}).
 
 % -----------------
 % Data API
@@ -81,8 +84,7 @@ init({}) ->
     {ok,
         #{
             players => [],
-            lobby_games => #{},
-            active_games => []
+            games => #{}
         }
     }.
 
@@ -102,35 +104,67 @@ handle_call({deregister_player, SPID, _GUID}, _From, #{ players := Players } = S
     {reply, proplists:get_keys(NewPlayers), State#{ players => NewPlayers }};
 handle_call({all_players}, _From, #{ players := Players } = State) ->
     {reply, proplists:get_keys(Players), State};
-handle_call({create_game}, _From, #{ lobby_games := LGames } = State) ->
-    NewCount = maps:size(LGames)+1,
-    NewLGames = LGames#{ NewCount => new_game_struct(NewCount) },
-    {reply, NewLGames, State#{ lobby_games => NewLGames }};
-handle_call({all_games}, _From, #{ lobby_games := LGames } = State) ->
-    {reply, LGames, State};
-handle_call({join_game, SPID, GameNum}, _From, #{ lobby_games := LGames } = State) ->
-    case check_player_in_game(GameNum, SPID, LGames) of
+handle_call({create_game}, _From, #{ games := Games } = State) ->
+    NewCount = maps:size(Games)+1,
+    NewGames = Games#{ NewCount => game_struct(NewCount) },
+    {reply, NewGames, State#{ games => NewGames }};
+handle_call({all_games}, _From, #{ games := Games } = State) ->
+    {reply, Games, State};
+handle_call({join_game, SPID, GID}, _From, #{ games := Games } = State) ->
+    case check_player_in_game(GID, SPID, Games) of
         {true, _Game} ->
             {reply, true, State};
         {false, Game} ->
-            {Reply, NewLGames} =
+            {Reply, NewGames} =
                 case can_planyer_join_game(Game) of
                     true ->
-                        NewPlayer = [{spid, SPID}, {game_state, not_ready}],
-                        NewGame = set(players, [NewPlayer|get(players, Game)], Game),
-                        {true, set(GameNum, NewGame, LGames)};
+                        {true, set(GID, set(players, add_player(SPID, Game), Game), Games)};
                     false ->
-                        {false, LGames}
+                        {false, Games}
                 end,
-            {reply, Reply, State#{lobby_games => NewLGames}};
+            {reply, Reply, State#{games => NewGames}};
         error ->
             {reply, false, State}
     end;
-handle_call({spectate_game, _SPID, _GameNum}, _From, #{ lobby_games := _LGames } = State) ->
+handle_call({leave_game, SPID, GID}, _From, #{ games := Games } = State) ->
+    case check_player_in_game(GID, SPID, Games) of
+        {true, Game} ->
+            NewGames = set(GID, set(players, remove_player(SPID, Game), Game), Games),
+            {reply, true, State#{games => NewGames}};
+        {false, _Game} ->
+            {reply, false, State};
+        error ->
+            {reply, false, State}
+    end;
+handle_call({spectate_game, _SPID, _GameNum}, _From, #{ games := _Games } = State) ->
     {reply, false, State};
-handle_call({get_game, GameNum}, _From, #{ lobby_games := LGames } = State) ->
-    Game = find_game(GameNum, LGames),
+handle_call({get_game, GID}, _From, #{ games := Games } = State) ->
+    Game = find_game(GID, Games),
     {reply, Game, State};
+handle_call({player_ready, SPID, GID}, _From, #{ games := Games } = State) ->
+    case check_player_in_game(GID, SPID, Games, not_ready) of
+        {Reply = true, Game} ->
+            NewGame = set_player_ready(Game, SPID),
+            NewGame2 =
+                case can_game_start(NewGame) of
+                    true ->
+                        set(state, starting, NewGame);
+                    false ->
+                        NewGame
+                end,
+            NewGames = set(GID, NewGame2, Games),
+            {reply, Reply, State#{games => NewGames}};
+        _ ->
+            % Do nothing
+            {reply, false, State}
+    end;
+handle_call({start_game, GID}, _From, #{ games := Games } = State) ->
+    % io:format("[~p] !!!!!!!!! GOING TO START GAME ~p !!!!!!!!!~n",
+    %           [?MODULE, GID]),
+    {ok, #{ state := starting} = Game} = find_game(GID, Games),
+    NewGame = set(state, started, Game),
+    NewGames = set(GID, NewGame, Games),
+    {reply, ok, State#{games => NewGames}};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -146,29 +180,37 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-new_game_struct(GameNum) ->
+% -----------
+
+game_struct(GID) ->
     % Rather than a map, maybe use a erlang record, and mnesia...
-    #{number => GameNum,
+    #{number => GID,
       state => lobby,
-      players => []
+      players => [],
+      starting_time => undefined
     }.
 
-find_game(GameNum, LGames) ->
-    maps:find(GameNum, LGames).
+find_game(GID, Games) ->
+    maps:find(GID, Games).
 
-check_player_in_game(GameNum, SPID, LGames) ->
-    case find_game(GameNum, LGames) of
+check_player_in_game(GID, SPID, Games) ->
+    case find_game(GID, Games) of
         {ok, Game} ->
             Players = get(players, Game),
-            % {lists:member(SPID, Players), Game};
-            % {case lists:keyfind(SPID, 1, Players) of
-            %      {SPID, _State} -> true;
-            %      false          -> false
-            %  end,
-            % Game};
-            InGame = lists:member([{spid,SPID},{game_state,not_ready}], Players) orelse
-                     lists:member([{spid,SPID},{game_state,ready}], Players) orelse
-                     lists:member([{spid,SPID},{game_state,in_game}], Players),
+            InGame = lists:member([{spid, SPID}, {game_state, not_ready}], Players) orelse
+                     lists:member([{spid, SPID}, {game_state, ready}], Players) orelse
+                     lists:member([{spid, SPID}, {game_state, in_game}], Players) orelse
+                     lists:member([{spid, SPID}, {game_state, spectate}], Players),
+            {InGame, Game};
+        error ->
+            error
+    end.
+
+check_player_in_game(GID, SPID, Games, GameState) ->
+    case find_game(GID, Games) of
+        {ok, Game} ->
+            Players = get(players, Game),
+            InGame = lists:member([{spid, SPID}, {game_state, GameState}], Players),
             {InGame, Game};
         error ->
             error
@@ -180,5 +222,72 @@ can_planyer_join_game(Game) ->
     % Test if adding the player, goes over the allowed limit
     (length(Players)+1) =< (?MAX_PLAYERS).
 
+set_player_ready(Game, SPID) ->
+    Players = get(players, Game),
+    NewPlayers = lists:map(fun
+        ([{spid, S}, {game_state, not_ready}]) when S =:= SPID ->
+            [{spid, SPID}, {game_state, ready}];
+        (I) ->
+            I
+    end, Players),
+    set(players, NewPlayers, Game).
+
+
 log(X) ->
     io:format("~p ~p~n", [?MODULE, X]).
+
+% can be done much better...
+add_player(SPID, Game) ->
+    [player_struct(SPID)|get(players, Game)].
+
+remove_player(SPID, Game) ->
+    lists:filter(fun
+        ([{spid, S}, {game_state, _}]) when S =:= SPID ->
+            false;
+        (_) ->
+            true
+    end, get(players, Game)).
+
+player_struct(SPID) ->
+    [{spid, SPID}, {game_state, not_ready}].
+
+% #{number =>
+%       1,
+%   players =>
+%       [[{spid,<<"ruan">>},{game_state,not_ready}],
+%        [{spid,<<"safari">>},{game_state,ready}]],
+%   state =>
+%       lobby
+% }
+can_game_start(Game) ->
+    % Minimum 2, maximum 4 players.
+    % once 2 players are ready, a 30 sec timer will commence.
+    % Once the timer has ran out, then the game starts.
+    GID = get(number, Game),
+    Players = get(players, Game),
+    case at_least_x_players_ready(Players) of
+        true ->
+            start_game_countdown(GID),
+            scrabble_notify:action({game_ready, GID}),
+            true;
+        false ->
+            false
+    end.
+
+at_least_x_players_ready(Players) ->
+    at_least_x_players_ready(Players, 0).
+
+at_least_x_players_ready(_, 2) ->
+    true;
+at_least_x_players_ready([], _Count) ->
+    false;
+at_least_x_players_ready([[{spid, _SPID}, {game_state, ready}]|T], Count) ->
+    at_least_x_players_ready(T, Count+1);
+at_least_x_players_ready([[{spid, _SPID}, {game_state, _}]|T], Count) ->
+    at_least_x_players_ready(T, Count).
+
+start_game_countdown(GID) ->
+    {ok, _TRef} = timer:apply_after(30000, gen_server, call, [?MODULE, {start_game, GID}]).
+
+
+

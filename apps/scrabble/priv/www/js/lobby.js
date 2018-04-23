@@ -202,27 +202,4 @@ $(document).ready(function(){
         );
     });
 
-    // $('#join_game_btn').click(function(){
-    //     alert('Join');
-    // });
-
-    // // join game...
-    // function join_game(num) {
-    //     alert('... join game ...');
-    //     spid = Cookies.get('scrabble_player_id');
-    //     guid = make_guid();
-    //     if(spid != undefined){
-    //         console.log('Player '+spid+' joins game '+num);
-    //         webSocket.send(
-    //             JSON.stringify({'join_game':{'spid':spid, 'game':num}})
-    //         );
-    //     }
-    // }
-
-    // function spectate_game(num) {
-    //     spid = Cookies.get('scrabble_player_id');
-    //     guid = make_guid();
-    //     console.log('Player '+spid+' starts spectating game '+num);
-    // }
-
 });

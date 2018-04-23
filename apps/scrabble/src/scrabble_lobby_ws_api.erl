@@ -1,4 +1,4 @@
--module(scrabble_ws_api).
+-module(scrabble_lobby_ws_api).
 
 -export([
     init/2,
@@ -13,11 +13,13 @@ init(Req, Opts) ->
     {cowboy_websocket, Req, Opts}.
 
 websocket_init(State) ->
-    % io:format("[~p] websocket init ~p ~p ~n", [?MODULE, self(), State]),
+    do_subscribe(),
+    {ok, State}.
+
+do_subscribe() ->
     true = scrabble_notify:subscribe(lobby_players),
     true = scrabble_notify:subscribe(lobby_games),
-    true = scrabble_notify:subscribe(active_games),
-    {ok, State}.
+    true = scrabble_notify:subscribe(active_games).
 
 websocket_handle({text, Msg}, State) ->
     case handle_msg(Msg) of
@@ -35,13 +37,22 @@ websocket_info({scrabble_notify,lobby_players,{A, _NewPlayer}}, State)
              A == rem_lobby_player ->
     Json = jsx:encode([{lobby_players, scrabble_lobby:all_players()}]),
     {reply, {text, Json}, State};
-websocket_info({scrabble_notify,lobby_games,new_game}, State) ->
-    AllGames = scrabble_lobby:all_games(),
-    Json = jsx:encode([{lobby_games, json_lobby_games(AllGames)}]),
+websocket_info({scrabble_notify, lobby_games, new_game}, State) ->
+    Json = get_all_games_json(),
+    {reply, {text, Json}, State};
+websocket_info({scrabble_notify, lobby_games, {player_joined_game, _SPID, _GID}}, State) ->
+    Json = get_all_games_json(),
+    {reply, {text, Json}, State};
+websocket_info({scrabble_notify, lobby_games, {player_leave, _SPID, _GID}}, State) ->
+    Json = get_all_games_json(),
     {reply, {text, Json}, State};
 websocket_info(Info, State) ->
     io:format("[~p] websocket info ~p ~n", [?MODULE, Info]),
     {ok, State}.
+
+get_all_games_json() ->
+    AllGames = scrabble_lobby:all_games(),
+    jsx:encode([{lobby_games, json_lobby_games(AllGames)}]).
 
 terminate(_State, _HandlerState, _Reason) ->
     % io:format("[~p] State ~p, HandlerState ~p, Reason ~p~n",
@@ -85,10 +96,6 @@ handle_decoded(Json) ->
     jsx:encode(Json).
 
 json_lobby_games(AllGames) ->
-    maps:fold(fun(K, V, A) ->
-        % #{ players := Players } = V,
-        % GameJsonReady = V#{ players => [Players] },
-        % io:format("~p ~n", [GameJsonReady]),
-        % [GameJsonReady|A]
+    maps:fold(fun(_K, V, A) ->
         [V|A]
     end, [], AllGames).

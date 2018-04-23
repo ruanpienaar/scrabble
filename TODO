@@ -1,4 +1,22 @@
 Front end:
+
+
+
+ ☐ STOP USING DOCUMENT READY - move scripts to bottom of page!!!!!!!!!!!!!! ( i cannot generate dynamic html, since the original functions gets stuck in document.ready )
+
+
+
+
+ ☐ Get game status updates VIA websocket
+ ☐ move the page from awaiting_game to game when game started...
+
+
+
+ ☐ Disable join game, if game in starting/started state
+ ☐ Show loading screen when game is starting. Also show time when game starts
+ ☐ If game starting, and page is refreshed, look at the game state, and display game starting
+ ☐ Lock game ( Based on a timer, when all lobby players are ready )
+ ☐ All players ready,  start game
  ☐ Move a player to awaiting_game page, when player is in game, and visits lobby page
  ☐ CHange join lobby, to just be a text box, next to the join lobby button
  ☐ use scrollbars in lobby players, and active games..
@@ -6,8 +24,6 @@ Front end:
  ☐ DIsable signout if user cookie == undefined
  ☐ WHen joining the lobby, hide the active game DIV row
  ☐ Generate anon cookie value for use in join-game and spectate
- ✔ Be able to click game, and join @done (18-03-21 15:44)
- ✔ When user has session cookie, and backend restarts, then it seems the user is still with a cookie. When the session starts, and the client has a cookie, send that to the backend to auto-register @done (18-03-21 15:43)
  ☐ button to submit word
  ☐ timer, so that player will have to finish
  ☐ fetching the existing board when refreshed
@@ -16,9 +32,17 @@ Front end:
  ☐ Download all the CDN javascript and css, and compress
  ☐ Deal with websocket closing better, ask the client what to do ?
  ☐ add description why redicting, at the awiting players page..
+ ☐ Update list of players on lobby page, when players join the game
+ ☐ sign-out should remove player from all games..
+ ☐
 
 Back end:
- ☐ Subscribe WS api to games list
+ ☐ Find a way of starting scrabble_game, when scrabble_lobby is set to ready
+ ☐ Disable join game, if game in starting/started state
+ ☐ record what time game will start...
+ ☐ Use game id in state, to check functions
+ ☐ Take List of players struct from scrabble_game, and implement in scrabble_lobby
+ ☐ lock game ( Based on a timer, when all lobby players are ready )
  ☐ keep track who's turn it is
  ☐ scoring
  ☐ creating the letter bag, for player to retrieve letters from
@@ -28,7 +52,10 @@ Back end:
  ☐ remove responses to some requests, like the response for registering a user, don't reply, just use  {ok, State}.
  ☐ reconsider the players, lobby_games, and games data structures
  ☐ subscribe to players joining game, and send ws json, when players joined.
- ☐
+ ☐ Potentially ReWrite the lobby game logic as a gen_statem
+ ☐ How will be only publish game events to websocket pids, linked to games?
+ ☐ Maybe use ets more?, rather than nested data structures ?
+ ☐ sign-out should remove player from all games..
 
 Dictionary Lookup on word:
 https://developer.oxforddictionaries.com/documentation
@@ -194,6 +221,19 @@ https://developer.oxforddictionaries.com/documentation
 
 ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿
 Archive:
+ ✔ Subscribe WS api to games list @done (18-03-23 00:06) @project(Back end)
+ ✔ All players ready,  start game @done (18-03-23 00:06) @project(Back end)
+ ✘ Start a timer, in which players can set themselves as ready, once the timer runs, out, then the game will start @cancelled (18-03-22 23:00) @project(Back end)
+ ✔ Player set ready @done (18-03-22 23:00) @project(Back end)
+ ✔ player leave game @done (18-03-22 22:58) @project(Back end)
+ ✔ Player leave game @done (18-03-22 22:58) @project(Front end)
+ ✔ Show player ready when click on ready @done (18-03-21 22:25) @project(Front end)
+ ✔ Show other players becoming ready from subscription @done (18-03-21 22:25) @project(Front end)
+ ✔ Player set ready @done (18-03-21 22:25) @project(Front end)
+ ✔ Show player ready on load @done (18-03-21 22:24) @project(Front end)
+ ✔ scrabble_wait_ws_api shouod gproc subscribe only to it's own game @done (18-03-21 22:11) @project(Back end)
+ ✔ Be able to click game, and join @done (18-03-21 15:44) @project(Front end)
+ ✔ When user has session cookie, and backend restarts, then it seems the user is still with a cookie. When the session starts, and the client has a cookie, send that to the backend to auto-register @done (18-03-21 15:43) @project(Front end)
  ✔ Send ping/echo from client to back-end @done (18-03-17 14:37) @project(Front end)
  ✔ drag and drop @done (18-03-17 13:53) @project(Front end)
  ✔ validation @done (18-03-16 21:55) @project(Front end)

@@ -17,7 +17,7 @@ instance_test_() ->
       {"scrabble_game_instance_test -> player_start/3",
         fun player_start/0},
       {"scrabble_game_instance_test -> player_take_x_tiles/3",
-        fun player_take_x_tiles/0}
+        fun gs_instance_player_take_x_tiles/0}
      ]
     }.
 
@@ -26,22 +26,22 @@ start_link() ->
     ?assertException(
         error,
         function_clause,
-        scrabble_game:start_link(1)
+        scrabble_game:start_link(1, 1)
     ),
     ?assertException(
         error,
         function_clause,
-        scrabble_game:start_link(5)
+        scrabble_game:start_link(1, 5)
     ),
     ?assertMatch(
         {ok, _},
-        scrabble_game:start_link(2)
+        scrabble_game:start_link(1, 2)
     ).
 
 player_start() ->
     ok.
 
-player_take_x_tiles() ->
+gs_instance_player_take_x_tiles() ->
     ?assertException(
         error,
         function_clause,
@@ -149,13 +149,13 @@ player_take_x_tiles() ->
             101,100,112,114,116,103,105,111,119,97,104,101,
             101,118,100,108,97,110,111,113,106,107,101,110,
             111,117,116,112,108,114,115,114,108,101,97,98,105,
-            111,105,97,116,101,97,101,100,121,1 01,97,102,
+            111,105,97,116,101,97,101,100,121,101,97,102,
             blank,108,105,116,110,111,105,117,98,105,101,117,
             103],
-       board => [{8, 8, 97}]
+       board => [{8, 8, 1, 97}]
     },
     ?assertEqual(
-        State1,
+        {reply, true, State1},
         scrabble_game:handle_call({player_places_tile, 1, 97, 8, 8}, {pid, ref}, State)
     ).
 

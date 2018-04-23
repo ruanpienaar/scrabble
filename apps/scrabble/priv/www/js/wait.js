@@ -57,23 +57,52 @@ $(document).ready(function(){
             $('#status').html('Going to redirect back to lobby...');
             setTimeout(function(){
                 window.location.href = json_data.redirect;
-            }, 5000);
+            }, 500);
 
         } else if(json_data.hasOwnProperty('awaiting_game')) {
+            gid = json_data.awaiting_game.number;
+            Cookies.set('scrabble_game_id', gid);
             $('#game_number').empty();
             $('#game_players').empty();
             $('#game_state').empty();
-
-            $('#game_number').html(json_data.awaiting_game.number);
-            //$('#game_players').html(json_data.awaiting_game.players);
+            $('#game_number').html(gid);
             for(var i=json_data.awaiting_game.players.length-1; i >= 0; i--){
+                var playerspid = json_data.awaiting_game.players[i].spid;
+                var playerstate = json_data.awaiting_game.players[i].game_state;
                 $('#game_players').append(
-                    '<p>'+json_data.awaiting_game.players[i].spid+'</p>'
+                    '<p>'+playerspid+' - '+playerstate+' </p>'
                 );
-                //json_data.awaiting_game.players[i];
             }
-            $('#game_state').html(json_data.awaiting_game.state);
+            var gs = json_data.awaiting_game.state;
+            // if(gs == 'starting'){
+
+            // } else {
+
+            // }
+            $('#game_state').html(gs);
         }
     }
+
+    $('#leave').click(function(){
+        var spid = Cookies.get('scrabble_player_id');
+        var gid = Cookies.get('scrabble_game_id');
+        webSocket.send(JSON.stringify(
+            {
+                'player_leave': spid,
+                'gid': gid
+            }
+        ));
+    });
+
+    $('#ready').click(function(){
+        var spid = Cookies.get('scrabble_player_id');
+        var gid = Cookies.get('scrabble_game_id');
+        webSocket.send(JSON.stringify(
+            {
+                'player_ready': spid,
+                'gid': gid
+            }
+        ));
+    });
 
 });

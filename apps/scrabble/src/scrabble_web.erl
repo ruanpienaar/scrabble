@@ -26,12 +26,12 @@ routes() ->
     [
      {'_',
         [
-            {"/", cowboy_static, {priv_file, scrabble, "www/index.html"}},
-
             %% Websocket:
-            {"/sws", scrabble_ws_api, []},
-            {"/swp", scrabble_wait_ws_api, [erlang:time()]},
+            {"/sws", scrabble_lobby_ws_api, []},
+            {"/swp", scrabble_wait_ws_api, []},
+            {"/swg", scrabble_game_ws_api, []},
 
+            {"/", cowboy_static, {priv_file, scrabble, "www/index.html"}},
             {"/[...]", cowboy_static, {priv_dir, scrabble, "/www"}}
         ]
      }

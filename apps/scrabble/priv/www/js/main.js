@@ -6,16 +6,16 @@ if (spid == undefined) {
 
 $(document).ready(function(){
 
-    $('#signout').click(function(){
-        // TODO: do websocket call, to remove back-end info too...
-        Cookies.remove('scrabble_player_id');
-        window.location.href = 'index.html';
-    });
+    // $('#signout').click(function(){
+    //     // TODO: do websocket call, to remove back-end info too...
+    //     Cookies.remove('scrabble_player_id');
+    //     window.location.href = 'index.html';
+    // });
 
     // JQuery Websocket:
     var url = window.location.href;
     var arr = url.split("/");
-    var ws_url = "ws://"+arr[2]+"/sws";
+    var ws_url = "ws://"+arr[2]+"/swg";
     var webSocket = new WebSocket(ws_url);
 
     webSocket.onerror = function(event) {
@@ -40,7 +40,11 @@ $(document).ready(function(){
     }
 
     function onMessage(event) {
-        console.log(event.data);
+        //console.log(event.data);
+        var json_data = JSON.parse(event.data);
+        if(json_data.hasOwnProperty('player_hand')) {
+            create_player_hand(json_data.player_hand);
+        }
     }
 
     function request_player_hand() {
@@ -51,28 +55,15 @@ $(document).ready(function(){
         ]));
     }
 
-    function create_player_hand() {
-        // TODO: Query backend for tile state.
-        // Query for player hand/tiles
-        // This array should come from a websocket/ajax BackEnd call.
-        player_tiles = [
-            '<div class="player_tiles" id="player_tile_1">a</div>',
-            '<div class="player_tiles" id="player_tile_2">b</div>',
-            '<div class="player_tiles" id="player_tile_3">c</div>',
-            '<div class="player_tiles" id="player_tile_4">d</div>',
-            '<div class="player_tiles" id="player_tile_5">e</div>',
-            '<div class="player_tiles" id="player_tile_6">f</div>',
-            '<div class="player_tiles" id="player_tile_7">g</div>'
-        ];
-
-        var squares = '';
-        for (var t = 1; t <= 7; t++) {
-            squares +=
-                '<td id="scrabble_hand_square_tile_'+t+'" class="scrabble_hand_square" >'
-                +player_tiles[t-1]
-                +'</td>';
-        }
-        $('#scrabble_player_tiles').append('<tr>'+squares+'</tr>');
+    function create_player_hand(player_tiles) {
+        // var squares = '';
+        // for (var t = 1; t <= 7; t++) {
+        //     squares +=
+        //         '<td id="scrabble_hand_square_tile_'+t+'" class="scrabble_hand_square" >'
+        //         +'<div class="player_tiles" id="player_tile_'+t+'">'+player_tiles[t-1]+'</div>'
+        //         +'</td>';
+        // }
+        // $('#scrabble_player_tiles').append('<tr>'+squares+'</tr>');
     }
 
     $('.player_tiles').draggable({
@@ -80,8 +71,11 @@ $(document).ready(function(){
         stack: '.game_square',
         snap: '.game_square',
         cursor: 'move',
+        // start: function(){
+        //     alert('what a drag...');
+        // },
         stop: function(){
-            alert('dropped');
+            //alert('dropped');
         }
     });
 
@@ -265,8 +259,6 @@ $(document).ready(function(){
         }
         $('#scrabble_board').append(row+'</tr>');
     }
-
-
 
     // Once Tile state is resolved, allow play/interaction.
 

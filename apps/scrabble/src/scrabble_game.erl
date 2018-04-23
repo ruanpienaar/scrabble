@@ -1,9 +1,12 @@
 -module(scrabble_game).
 
 -export([
-    start_link/1,
+    name/1,
+    start_link/2,
     player_start/2,
-    player_take_x_tiles/3
+    player_take_x_tiles/3,
+    player_places_tile/5,
+    get_player_hand/2
 ]).
 
 -ifdef(TEST).
@@ -28,17 +31,34 @@
 %% -------------------------------------------
 %% Api
 
-start_link(NmrPlayers) when NmrPlayers >= 2 andalso NmrPlayers =< 4 ->
-    gen_server:start_link(?MODULE, NmrPlayers, []).
+% scrabble_game_1, scrabble_game_2, scrabble_game_3
+name(GID) ->
+    list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
 
-player_start(Pid, PlayerNmr) ->
-    player_take_x_tiles(Pid, PlayerNmr, ?HAND_SIZE).
+start_link(GID, NmrPlayers) when NmrPlayers >= 2 andalso NmrPlayers =< 4 ->
+    gen_server:start_link({local, name(GID)}, ?MODULE, NmrPlayers, []).
 
-player_take_x_tiles(Pid, PlayerNmr, Amount) when Amount >= 1 andalso Amount =< 7 ->
-    gen_server:call(Pid, {player_take_x_tiles, PlayerNmr, Amount}).
+player_start(Pid, SPID) ->
+    player_take_x_tiles(Pid, SPID, ?HAND_SIZE).
 
-player_places_tile(Pid, Player, Tile, X, Y) ->
-    gen_server:call(Pid, {player_places_tile, Player, Tile, X, Y}).
+player_take_x_tiles(Pid, SPID, Amount) when Amount >= 1 andalso Amount =< 7 ->
+    gen_server:call(Pid, {player_take_x_tiles, SPID, Amount}).
+
+player_places_tile(Pid, SPID, Tile, X, Y) ->
+    gen_server:call(Pid, {player_places_tile, SPID, Tile, X, Y}).
+
+get_player_hand(Pid, SPID) ->
+    gen_server:call(Pid, {get_player_hand, SPID}).
+
+% -----------------
+% Data API
+
+get(K, Map) ->
+    #{ K := V } = Map,
+    V.
+
+set(K, V, Map) ->
+    Map#{ K => V }.
 
 %% -------------------------------------------
 %% Gen Server
@@ -51,20 +71,33 @@ init(NmrPlayers) ->
         board => []
     }}.
 
-handle_call({player_take_x_tiles, PlayerNmr, Amount}, _From,
+handle_call({player_take_x_tiles, SPID, Amount}, _From,
             #{ players := Players, tile_bag := TBag } = State) ->
     {NewBag, UpdatedPlayers} =
-        take_x_from_bag_into_player_hand(PlayerNmr, Amount, Players, TBag),
+        take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
     {reply, ok, State#{
         tile_bag => NewBag,
         players => UpdatedPlayers
     }};
-handle_call({player_places_tile, Player, Tile, X, Y}, _From, #{ board := Board } = State) ->
-    %% TODO: update board...
-    NewBoard = Board,
-    {reply, ok, State#{
-        board => NewBoard
-    }};
+handle_call({player_places_tile, SPID, Tile, X, Y}, _From,
+            #{ players := Players, board := Board } = State) ->
+    case find_tile_on_board(X, Y, Board) of
+        empty ->
+            % Update hand
+            {ok, PlayerMap} = get_player(SPID, Players),
+            UpdatedPlayerMap = take_tile_from_hand(PlayerMap, Tile),
+            UpdatedPlayers = update_player(SPID, UpdatedPlayerMap, Players),
+            {reply, true, State#{
+                players => UpdatedPlayers,
+                board => place_tile_on_board(X, Y, SPID, Tile, Board)
+            }};
+        not_empty ->
+            {reply, false, State}
+    end;
+handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
+    {ok, SPID} = get_player(SPID, Players),
+    PlayerHand = get(hand, SPID),
+    {reply, PlayerHand, State};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -175,11 +208,11 @@ take_random_tile(L) when L > [] ->
 
 players_structs(0, R) ->
     lists:reverse(R);
-players_structs(PlayerNmr, R) when PlayerNmr > 0 ->
-    players_structs(PlayerNmr -1, [players_struct(PlayerNmr) | R]).
+players_structs(SPID, R) when SPID > 0 ->
+    players_structs(SPID -1, [players_struct(SPID) | R]).
 
-players_struct(PlayerNmr) ->
-    {PlayerNmr,
+players_struct(SPID) ->
+    {SPID,
      #{
         score => 0,
         hand => [],
@@ -187,18 +220,18 @@ players_struct(PlayerNmr) ->
      }
     }.
 
-take_x_from_bag_into_player_hand(PlayerNmr, Amount, Players, TBag) ->
-    {PlayerNmr, #{ hand := ExistingHand } = PlayerStruct} =
-        lists:keyfind(PlayerNmr, 1, Players),
+get_player(SPID, Players) ->
+    {SPID, PlayerMap} = lists:keyfind(SPID, 1, Players),
+    {ok, PlayerMap}.
 
+take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag) ->
+    {ok, #{ hand := ExistingHand } = PlayerMap} = get_player(SPID, Players),
     case erlang:abs(?HAND_SIZE - length(ExistingHand)) of
         Amount -> % Pattern Match on Amount requested
             {ToTake, Rest} = lists:split(Amount, TBag),
             {
                 Rest,
-                lists:keyreplace(PlayerNmr, 1, Players,
-                    {PlayerNmr, PlayerStruct#{ hand => ToTake ++ ExistingHand }}
-                )
+                update_player(SPID, PlayerMap#{ hand => ToTake ++ ExistingHand }, Players)
             };
         % TODO: Should we crash, alert, trying to take more
         % than allowed in hand (7)
@@ -209,3 +242,21 @@ take_x_from_bag_into_player_hand(PlayerNmr, Amount, Players, TBag) ->
                 Players
             }
     end.
+
+update_player(SPID, PlayerMap, Players) ->
+    lists:keyreplace(SPID, 1, Players, {SPID, PlayerMap}).
+
+find_tile_on_board(X, Y, Board) ->
+    case {lists:keyfind(X, 1, Board), lists:keyfind(Y, 2, Board)} of
+        {false, false} ->
+            empty;
+        {{X, Y, SPID, Tile}, {X, Y, SPID, Tile}} ->
+            not_empty
+    end.
+
+place_tile_on_board(X, Y, SPID, Tile, Board) ->
+    [{X, Y, SPID, Tile}|Board].
+
+take_tile_from_hand(#{ hand := Hand } = Map, Tile) ->
+    NewHand = Hand -- [Tile],
+    Map#{ hand => NewHand }.

@@ -23,7 +23,9 @@ loop() ->
             % io:format("[~p] Going to monitor ~p~n", [?MODULE, Pid]),
             _Ref = erlang:monitor(process, Pid),
             loop();
-        {'DOWN',_Ref,process,_Pid,normal} ->
+        {'DOWN', _Ref, process, _Pid, normal} ->
+            loop();
+        {'DOWN', _Ref, process, _Pid, noproc} ->
             loop();
         X ->
             io:format("[~p] received ~p ~n", [?MODULE, X]),
