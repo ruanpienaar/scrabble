@@ -1,14 +1,18 @@
-s = Cookies.get('scrabble_player_id');
-if(s == undefined){
-    console.log('Anonymous user started...');
-    // TODO: Set field 'anon' to true
-    // TODO: generate anon cookie value...
-} else {
-    console.log('Scrabble player id '+s+' started...');
-}
+
 
 $(document).ready(function(){
 
+    s = Cookies.get('scrabble_player_id');
+    if(s == undefined){
+        console.log('Anonymous user started...');
+        // TODO: Set field 'anon' to true
+        // TODO: generate anon cookie value...
+        $('#signout').attr("disabled",'disabled');
+        $('#create_new_game').attr("disabled",'disabled');
+    } else {
+        console.log('Scrabble player id '+s+' started...');
+        $('#join_lobby').attr("disabled", 'disabled');
+    }
 
     function connect_websocket(){
         var url = window.location.href;
@@ -83,11 +87,17 @@ $(document).ready(function(){
             $('#lobby_games').empty();
             for (var i = json_data.lobby_games.length - 1; i >= 0; i--) {
                 var game_num = json_data.lobby_games[i].number;
+                if (spid == undefined){
+                    var disabled = " disabled ";
+                    var href = "#";
+                } else {
+                    var disabled = "";
+                    var href = 'href="awaiting_players.html?a=j&gid='+game_num+'&spid='+spid+'"';
+                }
                 //TODO: urlencode the URI's
                 var join_html = '<a class="btn btn-success" '
-                               +'href="awaiting_players.html'
-                               +'?a=j&gid='+game_num+'&spid='+spid+'"'
-                               +' role="button" >Join</button>';
+                               +href
+                               +' role="button" '+disabled+' >Join</button>';
                 // var spectate_html = '<a class="btn btn-success"'
                 //                   +' href="awaiting_players.html'
                 //                   +'?a=s&gid='+game_num+'&spid='+spid+'"'
@@ -187,11 +197,9 @@ $(document).ready(function(){
             ));
             console.log('deleting cookie');
             Cookies.remove('scrabble_player_id');
-            // if(Cookies.remove('scrabble_player_id') == undefined){
-                 console.log('Cookie deleted')
-            // } else {
-            //     //console.log('Cookie NOT deleted')
-            // }
+            console.log('Cookie deleted');
+            window.location.href = 'index.html';
+            get_lobby_players();
         }
     });
 

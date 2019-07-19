@@ -11,7 +11,8 @@
     leave_game/2,
     spectate_game/2,
     get_game/1,
-    player_ready/2
+    player_ready/2,
+    start_game/2
 ]).
 
 % Reading data API
@@ -68,6 +69,9 @@ get_game(GID) ->
 player_ready(SPID, GID) ->
     gen_server:call(?MODULE, {player_ready, SPID, GID}).
 
+start_game(SPID, GID) ->
+    gen_server:call(?MODULE, {start_game, SPID, GID}).
+
 % -----------------
 % Data API
 
@@ -100,7 +104,9 @@ handle_call({register_player, SPID, GUID}, _From,
         end,
     {reply, proplists:get_keys(NewPlayers), State#{ players => NewPlayers }};
 handle_call({deregister_player, SPID, _GUID}, _From, #{ players := Players } = State) ->
+    io:format("deregister SPID ~p\n", [SPID]),
     NewPlayers = lists:keydelete(SPID, 1, Players),
+    io:format("New players ~p\n", [NewPlayers]),
     {reply, proplists:get_keys(NewPlayers), State#{ players => NewPlayers }};
 handle_call({all_players}, _From, #{ players := Players } = State) ->
     {reply, proplists:get_keys(Players), State};
@@ -146,24 +152,43 @@ handle_call({player_ready, SPID, GID}, _From, #{ games := Games } = State) ->
         {Reply = true, Game} ->
             NewGame = set_player_ready(Game, SPID),
             NewGame2 =
-                case can_game_start(NewGame) of
-                    true ->
-                        set(state, starting, NewGame);
+                case can_start_game(NewGame) of
+                    {true, TRef} ->
+                        NG1 = set(state, can_start, NewGame),
+                        set(start_timer, TRef, NG1);
                     false ->
                         NewGame
                 end,
-            NewGames = set(GID, NewGame2, Games),
-            {reply, Reply, State#{games => NewGames}};
+            NewGames3 = set(GID, NewGame2, Games),
+            {reply, Reply, State#{games => NewGames3}};
         _ ->
             % Do nothing
             {reply, false, State}
     end;
-handle_call({start_game, GID}, _From, #{ games := Games } = State) ->
-    % io:format("[~p] !!!!!!!!! GOING TO START GAME ~p !!!!!!!!!~n",
-    %           [?MODULE, GID]),
-    {ok, #{ state := starting} = Game} = find_game(GID, Games),
+
+% When a player starts a game early....
+handle_call({start_game, SPID, GID}, _From, #{ games := Games } = State) ->
+    log({"Player Starting game", SPID, GID}),
+    {ok, #{ state := can_start } = Game} = find_game(GID, Games),
+    % Cancel timer
+    case maps:is_key(start_timer, Game) of
+        true ->
+            TRef = maps:get(start_timer, Game),
+            {ok, cancel} = timer:cancel(TRef);
+        false ->
+            ok
+    end,
     NewGame = set(state, started, Game),
     NewGames = set(GID, NewGame, Games),
+    scrabble_notify:action({game_starting, GID}),
+    {reply, ok, State#{games => NewGames}};
+% When the countdown runs out...
+handle_call({start_game, GID}, _From, #{ games := Games } = State) ->
+    log({"Starting game", GID}),
+    {ok, #{ state := can_start } = Game} = find_game(GID, Games),
+    NewGame = set(state, started, Game),
+    NewGames = set(GID, NewGame, Games),
+    scrabble_notify:action({game_starting, GID}),
     {reply, ok, State#{games => NewGames}};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
@@ -259,17 +284,17 @@ player_struct(SPID) ->
 %   state =>
 %       lobby
 % }
-can_game_start(Game) ->
-    % Minimum 2, maximum 4 players.
+can_start_game(Game) ->
+    % Minimum 1, maximum 4 players.
     % once 2 players are ready, a 30 sec timer will commence.
     % Once the timer has ran out, then the game starts.
     GID = get(number, Game),
     Players = get(players, Game),
     case at_least_x_players_ready(Players) of
         true ->
-            start_game_countdown(GID),
+            {ok, TRef} = start_game_countdown(GID),
             scrabble_notify:action({game_ready, GID}),
-            true;
+            {true, TRef};
         false ->
             false
     end.
@@ -277,7 +302,7 @@ can_game_start(Game) ->
 at_least_x_players_ready(Players) ->
     at_least_x_players_ready(Players, 0).
 
-at_least_x_players_ready(_, 2) ->
+at_least_x_players_ready(_, 1) ->
     true;
 at_least_x_players_ready([], _Count) ->
     false;
@@ -287,7 +312,6 @@ at_least_x_players_ready([[{spid, _SPID}, {game_state, _}]|T], Count) ->
     at_least_x_players_ready(T, Count).
 
 start_game_countdown(GID) ->
-    {ok, _TRef} = timer:apply_after(30000, gen_server, call, [?MODULE, {start_game, GID}]).
-
-
-
+    log("Starting game timer now..."),
+    {ok, _TRef} = timer:apply_after(30000, gen_server, call,
+        [?MODULE, {start_game, GID}]).

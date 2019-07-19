@@ -28,8 +28,7 @@ websocket_init(#{ req := Req } = State) ->
         {ok, [_, _, <<"undefined">>]} ->
             Json = jsx:encode([{'redirect', 'index.html'}]),
             {reply, {text, Json}, State};
-        {ok, [<<"j">>, GameNum, SPID]} ->
-            % Join game;
+        {ok, [<<"j">>, GameNum, SPID]} -> % Join game;
             GameNumInt = scrabble_utils:ens_int(GameNum),
             case scrabble_lobby:join_game(SPID, GameNumInt) of
                 true ->
@@ -40,12 +39,12 @@ websocket_init(#{ req := Req } = State) ->
                     Json = jsx:encode([{'redirect', 'index.html'}]),
                     {reply, {text, Json}, State}
             end;
-        {ok, [<<"s">>, GameNum, _SPID]} ->
-            % spectate
-            GameNumInt = scrabble_utils:ens_int(GameNum),
-            do_subscribe(GameNumInt),
-            Json = jsx:encode([]),
-            {reply, {text, Json}, State};
+        % {ok, [<<"s">>, GameNum, _SPID]} ->
+        %     % spectate
+        %     GameNumInt = scrabble_utils:ens_int(GameNum),
+        %     do_subscribe(GameNumInt),
+        %     Json = jsx:encode([]),
+        %     {reply, {text, Json}, State};
         error ->
             Json = jsx:encode([{'redirect', 'index.html'}]),
             {reply, {text, Json}, State}
@@ -73,6 +72,8 @@ websocket_info({scrabble_notify, {game_players, GID}, {player_joined_game, _SPID
     {reply, {text, game_json(GID)}, State};
 websocket_info({scrabble_notify, {game_status, GID}, {game_ready, GID}}, State) ->
     {reply, {text, game_json(GID)}, State};
+websocket_info({scrabble_notify, {game_status, GID}, {game_starting, GID}}, State) ->
+    {reply, {text, jsx:encode([{'redirect', 'game.html'}])}, State};
 websocket_info(Info, State) ->
     io:format("[~p - ~p] websocket info ~p ~n", [?MODULE, self(), Info]),
     {ok, State}.
@@ -108,10 +109,14 @@ handle_decoded([{<<"player_ready">>, SPID},
             scrabble_notify:action({player_ready, SPID, GameNumInt}),
             ok;
         Else ->
-            io:format("[~p] Player ~p could not join ~p reason ~p~n",
+            io:format("[~p] Player ~p not set to ready ~p reason ~p~n",
                       [?MODULE, SPID, GameNumInt, Else]),
             ok
     end;
+handle_decoded([{<<"game_start">>, SPID},
+                {<<"gid">>, GID}]) ->
+    GameNumInt = scrabble_utils:ens_int(GID),
+    ok = scrabble_lobby:start_game(SPID, GameNumInt);
 handle_decoded(Json) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).
@@ -131,4 +136,4 @@ find_map_values([H|T], Map, R) ->
 
 game_json(GameNumInt) ->
     {ok, Game} = scrabble_lobby:get_game(GameNumInt),
-    jsx:encode([{'awaiting_game', Game}]).
+    jsx:encode([{'awaiting_game', maps:without([start_timer], Game)}]).

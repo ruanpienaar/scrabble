@@ -16,7 +16,7 @@ websocket_init(_State) ->
     Pid =
         case whereis(scrabble_game:name(GID)) of
             undefined ->
-                {ok, P} = scrabble_game:start_link(GID, _Players=2),
+                {ok, P} = scrabble_game:start_link(GID, Players=1),
                 P;
             P ->
                 P
@@ -43,9 +43,9 @@ websocket_info(Info, State) ->
     io:format("[~p] websocket info ~p ~n", [?MODULE, Info]),
     {ok, State}.
 
-terminate(State, _HandlerState, _Reason) ->
-    % io:format("[~p] State ~p, HandlerState ~p, Reason ~p~n",
-    %           [?MODULE, State, HandlerState, Reason]).
+terminate(State, HandlerState, Reason) ->
+    io:format("[~p] State ~p, HandlerState ~p, Reason ~p~n",
+              [?MODULE, State, HandlerState, Reason]),
     ok.
 
 handle_msg(ReqJson, Pid) ->
@@ -68,6 +68,9 @@ handle_decoded([[{<<"request">>, <<"player_hand">>}],
           end || Tile <- scrabble_game:get_player_hand(Pid, 1)
         ],
     jsx:encode([{player_hand, Hand}]);
+handle_decoded([{<<"player_leave">>, SPID},{<<"gid">>, GID}], Pid) ->
+    ok = scrabble_game:player_leaves(Pid, SPID),
+    jsx:encode([{'redirect', 'index.html'}]);
 handle_decoded(Json, _Pid) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).

@@ -30,6 +30,17 @@ $(document).ready(function(){
         onMessage(event)
     };
 
+    webSocket.onclose = function(){
+        console.log('Socket Status: '+webSocket.readyState+' (Closed)');
+    }
+
+    // Websocket keepalive
+    function send_echo() {
+        //console.log(webSocket);
+        webSocket.send(JSON.stringify({'request':'echo'}));
+    }
+    setInterval(send_echo, 30000);
+
     // websocket handler functions
     function onError(event) {
         console.log(event.data);
@@ -42,7 +53,12 @@ $(document).ready(function(){
     function onMessage(event) {
         //console.log(event.data);
         var json_data = JSON.parse(event.data);
-        if(json_data.hasOwnProperty('player_hand')) {
+        if(json_data.hasOwnProperty('redirect')) {
+            $('#status').html('Going to redirect back to lobby...');
+            setTimeout(function(){
+                window.location.href = json_data.redirect;
+            }, 500);
+        } else if(json_data.hasOwnProperty('player_hand')) {
             create_player_hand(json_data.player_hand);
         }
     }
@@ -141,6 +157,19 @@ $(document).ready(function(){
             )
         );
     });
+
+    $('#leave_game').click(function(){
+        var spid = Cookies.get('scrabble_player_id');
+        var gid = Cookies.get('scrabble_game_id');
+        webSocket.send(
+            JSON.stringify(
+                {
+                    'player_leave': spid,
+                    'gid': gid
+                }
+            )
+        );
+    })
 
     function guid() {
         var nav = window.navigator;
@@ -272,4 +301,3 @@ $(document).ready(function(){
 // 5 points: K ×1
 // 8 points: J ×1, X ×1
 // 10 points: Q ×1, Z ×1
-

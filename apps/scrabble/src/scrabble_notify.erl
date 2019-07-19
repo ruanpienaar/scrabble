@@ -22,6 +22,8 @@ action(A = new_game) ->
 action(A = {player_ready, _SPID, GID}) ->
     publish({game_players, GID}, A);
 action(A = {game_ready, GID}) ->
+    publish({game_status, GID}, A);
+action(A = {game_starting, GID}) ->
     publish({game_status, GID}, A).
 
 % action({node_connected, Node, Cookie}) ->

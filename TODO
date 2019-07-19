@@ -1,17 +1,7 @@
 Front end:
-
-
-
  ☐ STOP USING DOCUMENT READY - move scripts to bottom of page!!!!!!!!!!!!!! ( i cannot generate dynamic html, since the original functions gets stuck in document.ready )
-
-
-
-
  ☐ Get game status updates VIA websocket
- ☐ move the page from awaiting_game to game when game started...
-
-
-
+ ✔ move the page from awaiting_game to game when game started... @done (19-07-19 19:17)
  ☐ Disable join game, if game in starting/started state
  ☐ Show loading screen when game is starting. Also show time when game starts
  ☐ If game starting, and page is refreshed, look at the game state, and display game starting
@@ -34,10 +24,13 @@ Front end:
  ☐ add description why redicting, at the awiting players page..
  ☐ Update list of players on lobby page, when players join the game
  ☐ sign-out should remove player from all games..
- ☐
+ ☐ sign in on lobby page is broken ( html out of place )
+ ☐ create function for looking up cookie
+ ☐ Change the lobby.js, so that players gets added 1 by 1
+ ☐ Show logged in user
 
 Back end:
- ☐ Find a way of starting scrabble_game, when scrabble_lobby is set to ready
+ ✔ Find a way of starting scrabble_game, when scrabble_lobby is set to ready @done (19-07-19 19:17)
  ☐ Disable join game, if game in starting/started state
  ☐ record what time game will start...
  ☐ Use game id in state, to check functions
@@ -56,6 +49,12 @@ Back end:
  ☐ How will be only publish game events to websocket pids, linked to games?
  ☐ Maybe use ets more?, rather than nested data structures ?
  ☐ sign-out should remove player from all games..
+ ☐ awaiting_players do not get updated when players leave the lobby early
+ ☐ new game creates 2 websocket messages ( BUG )
+ ☐ Change lobby to be instance per lobby, rather than keeping a massive state
+ ☐ scrabble_lobby_ws_api handles requests from landing page ( index.html ) naming is confusing
+ ☐ prevent duplicate user names from joining
+
 
 Dictionary Lookup on word:
 https://developer.oxforddictionaries.com/documentation

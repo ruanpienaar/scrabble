@@ -6,7 +6,8 @@
     player_start/2,
     player_take_x_tiles/3,
     player_places_tile/5,
-    get_player_hand/2
+    get_player_hand/2,
+    player_leaves/2
 ]).
 
 -ifdef(TEST).
@@ -35,7 +36,7 @@
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
 
-start_link(GID, NmrPlayers) when NmrPlayers >= 2 andalso NmrPlayers =< 4 ->
+start_link(GID, NmrPlayers) when NmrPlayers >= 1 andalso NmrPlayers =< 4 ->
     gen_server:start_link({local, name(GID)}, ?MODULE, NmrPlayers, []).
 
 player_start(Pid, SPID) ->
@@ -50,6 +51,9 @@ player_places_tile(Pid, SPID, Tile, X, Y) ->
 get_player_hand(Pid, SPID) ->
     gen_server:call(Pid, {get_player_hand, SPID}).
 
+player_leaves(Pid, SPID) ->
+    gen_server:call(Pid, {player_leaves, SPID}).
+
 % -----------------
 % Data API
 
@@ -57,8 +61,8 @@ get(K, Map) ->
     #{ K := V } = Map,
     V.
 
-set(K, V, Map) ->
-    Map#{ K => V }.
+% set(K, V, Map) ->
+%     Map#{ K => V }.
 
 %% -------------------------------------------
 %% Gen Server
@@ -95,9 +99,20 @@ handle_call({player_places_tile, SPID, Tile, X, Y}, _From,
             {reply, false, State}
     end;
 handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
-    {ok, SPID} = get_player(SPID, Players),
-    PlayerHand = get(hand, SPID),
+    {ok, PlayerMap} = get_player(SPID, Players),
+    PlayerHand = get(hand, PlayerMap),
     {reply, PlayerHand, State};
+handle_call({player_leaves, SPID}, _From,
+        #{ players := Players } = State) ->
+    io:format("All players ~p\n", [Players]),
+    UpdatedPlayers = remove_player(SPID, Players),
+
+    % Check if last player left...
+    io:format("UpdatedPlayers ~p\n", [UpdatedPlayers]),
+
+    {reply, ok, State#{
+        players => UpdatedPlayers
+    }};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -223,6 +238,9 @@ players_struct(SPID) ->
 get_player(SPID, Players) ->
     {SPID, PlayerMap} = lists:keyfind(SPID, 1, Players),
     {ok, PlayerMap}.
+
+remove_player(SPID, Players) ->
+    {ok, lists:keydelete(SPID, 1, Players)}.
 
 take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag) ->
     {ok, #{ hand := ExistingHand } = PlayerMap} = get_player(SPID, Players),

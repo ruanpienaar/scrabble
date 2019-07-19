@@ -54,11 +54,10 @@ $(document).ready(function(){
         // window.location = "index.html"
         var json_data = JSON.parse(event.data);
         if(json_data.hasOwnProperty('redirect')) {
-            $('#status').html('Going to redirect back to lobby...');
+            $('#status').html('Going to redirect to '+json_data.redirect+'...');
             setTimeout(function(){
                 window.location.href = json_data.redirect;
-            }, 500);
-
+            }, 1000);
         } else if(json_data.hasOwnProperty('awaiting_game')) {
             gid = json_data.awaiting_game.number;
             Cookies.set('scrabble_game_id', gid);
@@ -80,6 +79,8 @@ $(document).ready(function(){
 
             // }
             $('#game_state').html(gs);
+        } else if(json_data.hasOwnProperty('player_ready')){
+            console.log(json_data);
         }
     }
 
@@ -100,6 +101,17 @@ $(document).ready(function(){
         webSocket.send(JSON.stringify(
             {
                 'player_ready': spid,
+                'gid': gid
+            }
+        ));
+    });
+
+    $('#start').click(function(){
+        var spid = Cookies.get('scrabble_player_id');
+        var gid = Cookies.get('scrabble_game_id');
+        webSocket.send(JSON.stringify(
+            {
+                'game_start': spid,
                 'gid': gid
             }
         ));

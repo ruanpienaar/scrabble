@@ -22,6 +22,7 @@ do_subscribe() ->
     true = scrabble_notify:subscribe(active_games).
 
 websocket_handle({text, Msg}, State) ->
+    io:format("[~p] handle ~p\n", [?MODULE, Msg]),
     case handle_msg(Msg) of
         ok ->
             {ok, State};
@@ -46,6 +47,11 @@ websocket_info({scrabble_notify, lobby_games, {player_joined_game, _SPID, _GID}}
 websocket_info({scrabble_notify, lobby_games, {player_leave, _SPID, _GID}}, State) ->
     Json = get_all_games_json(),
     {reply, {text, Json}, State};
+
+websocket_info({scrabble_notify,{game_status, GID}, {game_starting, GID}}, State) ->
+    Json = jsx:encode([{<<"action">>, <<"start_game">>}]),
+    {reply, {text, Json}, State};
+
 websocket_info(Info, State) ->
     io:format("[~p] websocket info ~p ~n", [?MODULE, Info]),
     {ok, State}.
@@ -65,23 +71,23 @@ handle_msg(ReqJson) ->
 
 handle_decoded([{<<"register_lobby_player">>, SPID},
                 {<<"guid">>, GUID}]) ->
-    scrabble_notify:action({new_lobby_player, SPID}),
     _NewPlayers = scrabble_lobby:register_player(SPID, GUID),
+    scrabble_notify:action({new_lobby_player, SPID}),
     ok;
 handle_decoded([{<<"deregister_lobby_player">>, SPID},
                 {<<"guid">>, GUID}]) ->
+    NewPlayers = scrabble_lobby:deregister_player(SPID, GUID),
+    io:format("[~p] New players in ~p\n", [?MODULE, NewPlayers]),
     scrabble_notify:action({rem_lobby_player, SPID}),
-    _NewPlayers = scrabble_lobby:deregister_player(SPID, GUID),
     ok;
 handle_decoded([{<<"request">>,<<"lobby_players">>}]) ->
     jsx:encode([{lobby_players, scrabble_lobby:all_players()}]);
 handle_decoded([{<<"request">>,<<"create_new_game">>}]) ->
-    AllGames = scrabble_lobby:create_game(),
     scrabble_notify:action(new_game),
-    jsx:encode([{lobby_games, json_lobby_games(AllGames)}]);
+    _AllGames = scrabble_lobby:create_game(),
+    get_all_games_json();
 handle_decoded([{<<"request">>,<<"lobby_games">>}]) ->
-    AllGames = scrabble_lobby:all_games(),
-    jsx:encode([{lobby_games, json_lobby_games(AllGames)}]);
+    get_all_games_json();
 handle_decoded([{<<"request">>,<<"echo">>}]) ->
     jsx:encode([{response, echo_reply}]);
 handle_decoded([{<<"join_game">>,[{<<"spid">>,SPID},{<<"game">>,GameNum}]}]) ->
@@ -97,5 +103,5 @@ handle_decoded(Json) ->
 
 json_lobby_games(AllGames) ->
     maps:fold(fun(_K, V, A) ->
-        [V|A]
+        [maps:without([start_timer], V)|A]
     end, [], AllGames).
