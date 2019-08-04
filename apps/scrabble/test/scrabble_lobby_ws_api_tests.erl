@@ -33,36 +33,72 @@ websocket_test_() ->
                     lists:foreach(fun(App) -> ok = application:stop(App) end, lists:reverse(Apps))
                 end,
                 [
-                    {"test register_lobby_player",
+                    {"test get_lobby_players",
                         fun(_Test, LobbyWsClientPid) ->
-                            ?_test(register_lobby_player(LobbyWsClientPid))
+                            ?_test(get_lobby_players(LobbyWsClientPid))
                         end
-                    }
+                    } %,
+                    % {"test get_lobby_games",
+                    %     fun(_Test, LobbyWsClientPid) ->
+                    %         ?_test(get_lobby_games(LobbyWsClientPid))
+                    %     end
+                    % },
+                    % {"test register_lobby_player",
+                    %     fun(_Test, LobbyWsClientPid) ->
+                    %         ?_test(register_lobby_player(LobbyWsClientPid))
+                    %     end
+                    % }
                 ]
             }
         ]
     }.
 
-register_lobby_player(LobbyWsClientPid) ->
+get_lobby_players(LobbyWsClientPid) ->
+    erlang_testing_web_socket:send_ws_request(
+        self(),
+        LobbyWsClientPid,
+        lobby_players_req()
+    ),
+    receive
+        X ->
+            ?assertEqual(
+                [],
+                X
+            ),
+            erlang_testing_web_socket:cleanup_client_pid(LobbyWsClientPid)
+    after
+        ?WS_RESPONSE_TIMEOUT ->
+            erlang_testing_web_socket:cleanup_client_pid(LobbyWsClientPid),
+            erlang:exit(self(), {test, ?FUNCTION_NAME, failed, line, ?LINE})
+    end.
 
-    %% register player 1
 
-    %% create game 1
+% get_lobby_games(LobbyWsClientPid) ->
+%     ok.
 
-    % erlang_testing_web_socket:send_ws_request(self(), LobbyWsClientPid,
-    %     register_req(1, 1)),
-    % receive
-    %     X ->
-    %         ok,
-    %         erlang_testing_web_socket:cleanup_client_pid(LobbyWsClientPid)
-    % after
-    %     ?WS_RESPONSE_TIMEOUT ->
-    %         erlang_testing_web_socket:cleanup_client_pid(LobbyWsClientPid),
-    %         erlang:exit(self(), {test, ?FUNCTION_NAME, failed, line, ?LINE})
-    % end.
+% register_lobby_player(LobbyWsClientPid) ->
 
-    ok.
+%     %% register player 1
 
-register_req(SPID, GUID) ->
-    jsx:encode([{<<"register_lobby_player">>, SPID},
-                {<<"guid">>, GUID}]).
+%     %% create game 1
+
+%     % erlang_testing_web_socket:send_ws_request(self(), LobbyWsClientPid,
+%     %     register_req(1, 1)),
+%     % receive
+%     %     X ->
+%     %         ok,
+%     %         erlang_testing_web_socket:cleanup_client_pid(LobbyWsClientPid)
+%     % after
+%     %     ?WS_RESPONSE_TIMEOUT ->
+%     %         erlang_testing_web_socket:cleanup_client_pid(LobbyWsClientPid),
+%     %         erlang:exit(self(), {test, ?FUNCTION_NAME, failed, line, ?LINE})
+%     % end.
+
+%     ok.
+
+lobby_players_req() ->
+    jsx:encode([{<<"request">>, <<"lobby_players">>}]).
+
+% register_req(SPID, GUID) ->
+%     jsx:encode([{<<"register_lobby_player">>, SPID},
+%                 {<<"guid">>, GUID}]).
