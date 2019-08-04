@@ -21,19 +21,19 @@ instance_test_() ->
      ]
     }.
 
-% Scrabble game 2-4 players
+% Scrabble game 1-4 players
 start_link() ->
-    ?assertException(
+    ?assertException( %% Too little
         error,
         function_clause,
-        scrabble_game:start_link(1, 1)
+        scrabble_game:start_link(1, 0)
     ),
-    ?assertException(
+    ?assertException( %% Too many
         error,
         function_clause,
         scrabble_game:start_link(1, 5)
     ),
-    ?assertMatch(
+    ?assertMatch( %% ok
         {ok, _},
         scrabble_game:start_link(1, 2)
     ).

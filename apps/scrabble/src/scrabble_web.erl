@@ -9,7 +9,9 @@
 -define(COWBOY_REF, http).
 
 start_link() ->
-    start().
+    {ok, Pid} = start(),
+    true = erlang:link(Pid),
+    {ok, Pid}.
 
 start() ->
     Port = application:get_env(scrabble, http_port, 9876),

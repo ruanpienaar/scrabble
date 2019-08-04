@@ -1,4 +1,5 @@
 -module(scrabble_lobby_tests).
+
 -include_lib("eunit/include/eunit.hrl").
 
 %% -------------------------------------------
@@ -37,9 +38,9 @@ gs_callbacks_test_() ->
     }.
 
 init() ->
-    ?assertMatch(
-        ok,
-        scrabble_lobby:init(2)
+    ?assertEqual(
+        {ok,#{games => #{},players => []}},
+        scrabble_lobby:init({})
     ).
 
 %% -------------------------------------------

@@ -16,7 +16,7 @@ websocket_init(_State) ->
     Pid =
         case whereis(scrabble_game:name(GID)) of
             undefined ->
-                {ok, P} = scrabble_game:start_link(GID, Players=1),
+                {ok, P} = scrabble_game:start_link(GID, _Players=1),
                 P;
             P ->
                 P
