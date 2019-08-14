@@ -21,17 +21,22 @@ do_subscribe() ->
     true = scrabble_notify:subscribe(lobby_games),
     true = scrabble_notify:subscribe(active_games).
 
+websocket_handle(Msg, State) when is_atom(Msg) ->
+    do_handle_message(Msg, State);
 websocket_handle({text, Msg}, State) ->
+    do_handle_message(Msg, State);
+websocket_handle(Data, State) ->
+    io:format("[~p] websocket handle ~p ~n", [?MODULE, Data]),
+    {ok, State}.
+
+do_handle_message(Msg, State) ->
     io:format("[~p] handle ~p\n", [?MODULE, Msg]),
     case handle_msg(Msg) of
         ok ->
             {ok, State};
-        Json ->
+        Json when is_binary(Json) ->
             {reply, {text, Json}, State}
-    end;
-websocket_handle(Data, State) ->
-    io:format("[~p] websocket handle ~p ~n", [?MODULE, Data]),
-    {ok, State}.
+    end.
 
 websocket_info({scrabble_notify,lobby_players,{A, _NewPlayer}}, State)
         when A == new_lobby_player orelse
@@ -47,11 +52,9 @@ websocket_info({scrabble_notify, lobby_games, {player_joined_game, _SPID, _GID}}
 websocket_info({scrabble_notify, lobby_games, {player_leave, _SPID, _GID}}, State) ->
     Json = get_all_games_json(),
     {reply, {text, Json}, State};
-
 websocket_info({scrabble_notify,{game_status, GID}, {game_starting, GID}}, State) ->
     Json = jsx:encode([{<<"action">>, <<"start_game">>}]),
     {reply, {text, Json}, State};
-
 websocket_info(Info, State) ->
     io:format("[~p] websocket info ~p ~n", [?MODULE, Info]),
     {ok, State}.
@@ -65,6 +68,8 @@ terminate(_State, _HandlerState, _Reason) ->
     %          [?MODULE, State, HandlerState, Reason]).
     ok.
 
+handle_msg(ping) ->
+    <<"pong">>;
 handle_msg(ReqJson) ->
     Json = jsx:decode(ReqJson),
     handle_decoded(Json).
