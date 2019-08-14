@@ -74,6 +74,7 @@ handle_msg(ReqJson) ->
     Json = jsx:decode(ReqJson),
     handle_decoded(Json).
 
+%% TODO: change some of these to "request" items.
 handle_decoded([{<<"register_lobby_player">>, SPID},
                 {<<"guid">>, GUID}]) ->
     _NewPlayers = scrabble_lobby:register_player(SPID, GUID),

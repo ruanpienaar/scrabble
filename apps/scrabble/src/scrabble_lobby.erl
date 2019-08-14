@@ -35,6 +35,8 @@
 % Players
 % SPID = Scrabble Player Identification
 
+%% TODO: user ?FUNCTION_NAME
+
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, {}, []).
 
@@ -46,6 +48,9 @@ deregister_player(SPID, GUID) ->
 
 all_players() ->
     gen_server:call(?MODULE, {all_players}).
+
+all_player_details() ->
+    gen_server:call(?MODULE, {all_player_details}).
 
 create_game() ->
     gen_server:call(?MODULE, {create_game}).
@@ -110,6 +115,8 @@ handle_call({deregister_player, SPID, _GUID}, _From, #{ players := Players } = S
     {reply, proplists:get_keys(NewPlayers), State#{ players => NewPlayers }};
 handle_call({all_players}, _From, #{ players := Players } = State) ->
     {reply, proplists:get_keys(Players), State};
+handle_call({all_player_details}, _From, #{ players := Players } = State) ->
+    {reply, Players, State};
 handle_call({create_game}, _From, #{ games := Games } = State) ->
     NewCount = maps:size(Games)+1,
     NewGames = Games#{ NewCount => game_struct(NewCount) },
