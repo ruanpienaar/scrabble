@@ -71,6 +71,7 @@ terminate(_State, _HandlerState, _Reason) ->
 handle_msg(ping) ->
     <<"pong">>;
 handle_msg(ReqJson) ->
+    io:format("ReqJson ~p\n", [ReqJson]),
     Json = jsx:decode(ReqJson),
     handle_decoded(Json).
 
@@ -88,9 +89,10 @@ handle_decoded([{<<"deregister_lobby_player">>, SPID},
     ok;
 handle_decoded([{<<"request">>,<<"lobby_players">>}]) ->
     jsx:encode([{lobby_players, scrabble_lobby:all_players()}]);
-handle_decoded([{<<"request">>,<<"create_new_game">>}]) ->
+handle_decoded([{<<"request">>,<<"create_new_game">>},
+                {<<"spid">>, SPID}]) ->
     scrabble_notify:action(new_game),
-    _AllGames = scrabble_lobby:create_game(),
+    _AllGames = scrabble_lobby:create_game(SPID),
     get_all_games_json();
 handle_decoded([{<<"request">>,<<"lobby_games">>}]) ->
     get_all_games_json();
@@ -109,5 +111,5 @@ handle_decoded(Json) ->
 
 json_lobby_games(AllGames) ->
     maps:fold(fun(_K, V, A) ->
-        [maps:without([start_timer], V)|A]
+        [maps:without([start_timer, game_pid], V)|A]
     end, [], AllGames).

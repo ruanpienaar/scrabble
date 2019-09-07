@@ -16,16 +16,12 @@ websocket_init(_State) ->
     Pid =
         case whereis(scrabble_game:name(GID)) of
             undefined ->
-                {ok, P} = scrabble_game:start_link(GID, _Players=1),
-                P;
-            P ->
+                {stop, #{}};
+            P when is_pid(P) ->
                 P
         end,
-    % io:format("GAME PID : ~p~n", [Pid]),
     %% TODO: implement, player pics 1 tile, see's who get's the
     %%       highest number, and then allow that player to start
-    ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
-    ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
     {ok, #{ pid => Pid }}.
 
 websocket_handle({text, Msg}, #{ pid := Pid } = State) ->
@@ -65,7 +61,7 @@ handle_decoded([[{<<"request">>, <<"player_hand">>}],
                 _ ->
                     list_to_binary([Tile])
             end
-          end || Tile <- scrabble_game:get_player_hand(Pid, 1)
+          end || Tile <- scrabble_game:get_player_hand(Pid, SPID)
         ],
     jsx:encode([{player_hand, Hand}]);
 handle_decoded([{<<"player_leave">>, SPID},{<<"gid">>, GID}], Pid) ->

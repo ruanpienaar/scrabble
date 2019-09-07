@@ -205,9 +205,19 @@ $(document).ready(function(){
 
     // Create new game:
     $('#create_new_game').click(function(){
-        webSocket.send(
-            JSON.stringify({'request': 'create_new_game'})
-        );
+        spid = Cookies.get('scrabble_player_id');
+        if(spid == undefined){
+            console.log('Not in Lobby!');
+        } else {
+            webSocket.send(
+                JSON.stringify(
+                    {
+                        'request': 'create_new_game',
+                        'spid': spid
+                    }
+                )
+            )
+        }
     });
 
 });

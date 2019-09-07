@@ -116,7 +116,12 @@ handle_decoded([{<<"player_ready">>, SPID},
 handle_decoded([{<<"game_start">>, SPID},
                 {<<"gid">>, GID}]) ->
     GameNumInt = scrabble_utils:ens_int(GID),
-    ok = scrabble_lobby:start_game(SPID, GameNumInt);
+    case scrabble_lobby:start_game(SPID, GameNumInt) of
+        ok ->
+            ok;
+        {error, Reason} ->
+            ok
+    end;
 handle_decoded(Json) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).
@@ -136,4 +141,4 @@ find_map_values([H|T], Map, R) ->
 
 game_json(GameNumInt) ->
     {ok, Game} = scrabble_lobby:get_game(GameNumInt),
-    jsx:encode([{'awaiting_game', maps:without([start_timer], Game)}]).
+    jsx:encode([{'awaiting_game', maps:without([start_timer, game_pid], Game)}]).

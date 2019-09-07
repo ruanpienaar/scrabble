@@ -5,7 +5,8 @@
     register_player/2,
     deregister_player/2,
     all_players/0,
-    create_game/0,
+    all_player_details/0,
+    create_game/1,
     all_games/0,
     join_game/2,
     leave_game/2,
@@ -18,16 +19,24 @@
 % Reading data API
 -export([
     get/2,
-    set/3
+    set/3,
+    clear_all_lobby_games/0
 ]).
 
 -define(MAX_PLAYERS, 4).
--define(MIN_PLAYERS, 2).
+-define(MIN_PLAYERS, 1).
 
 %% TODO: build expiry on users...
 
 -behaviour(gen_server).
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -define(SERVER, ?MODULE).
 
@@ -52,8 +61,8 @@ all_players() ->
 all_player_details() ->
     gen_server:call(?MODULE, {all_player_details}).
 
-create_game() ->
-    gen_server:call(?MODULE, {create_game}).
+create_game(SPID) ->
+    gen_server:call(?MODULE, {create_game, SPID}).
 
 all_games() ->
     gen_server:call(?MODULE, {all_games}).
@@ -77,6 +86,11 @@ player_ready(SPID, GID) ->
 start_game(SPID, GID) ->
     gen_server:call(?MODULE, {start_game, SPID, GID}).
 
+% TESTS ONLY
+
+clear_all_lobby_games() ->
+    gen_server:call(?MODULE, {clear_all_lobby_games}).
+
 % -----------------
 % Data API
 
@@ -90,6 +104,7 @@ set(K, V, Map) ->
 % -----------------
 
 init({}) ->
+    process_flag(trap_exit, true),
     {ok,
         #{
             players => [],
@@ -117,10 +132,13 @@ handle_call({all_players}, _From, #{ players := Players } = State) ->
     {reply, proplists:get_keys(Players), State};
 handle_call({all_player_details}, _From, #{ players := Players } = State) ->
     {reply, Players, State};
-handle_call({create_game}, _From, #{ games := Games } = State) ->
+handle_call({create_game, SPID}, _From, #{ games := Games } = State) ->
     NewCount = maps:size(Games)+1,
-    NewGames = Games#{ NewCount => game_struct(NewCount) },
+    NewGames = Games#{ NewCount => game_struct(SPID, NewCount) },
     {reply, NewGames, State#{ games => NewGames }};
+handle_call({remove_game, GID}, _From, #{ games := Games } = State) ->
+    NewGames = do_remove_game(GID, Games),
+    {reply, ok, State#{ games => NewGames }};
 handle_call({all_games}, _From, #{ games := Games } = State) ->
     {reply, Games, State};
 handle_call({join_game, SPID, GID}, _From, #{ games := Games } = State) ->
@@ -142,8 +160,15 @@ handle_call({join_game, SPID, GID}, _From, #{ games := Games } = State) ->
 handle_call({leave_game, SPID, GID}, _From, #{ games := Games } = State) ->
     case check_player_in_game(GID, SPID, Games) of
         {true, Game} ->
-            NewGames = set(GID, set(players, remove_player(SPID, Game), Game), Games),
-            {reply, true, State#{games => NewGames}};
+            % If last player leaves, then end game
+            case remove_player(SPID, Game) of
+                [] ->
+                    NewGames = do_remove_game(GID, Games),
+                    {reply, true, State#{games => NewGames}};
+                NewPlayers ->
+                    NewGames = set(GID, set(players, NewPlayers, Game), Games),
+                    {reply, true, State#{games => NewGames}}
+            end;
         {false, _Game} ->
             {reply, false, State};
         error ->
@@ -152,8 +177,8 @@ handle_call({leave_game, SPID, GID}, _From, #{ games := Games } = State) ->
 handle_call({spectate_game, _SPID, _GameNum}, _From, #{ games := _Games } = State) ->
     {reply, false, State};
 handle_call({get_game, GID}, _From, #{ games := Games } = State) ->
-    Game = find_game(GID, Games),
-    {reply, Game, State};
+    {ok, Game} = find_game(GID, Games),
+    {reply, {ok, Game}, State};
 handle_call({player_ready, SPID, GID}, _From, #{ games := Games } = State) ->
     case check_player_in_game(GID, SPID, Games, not_ready) of
         {Reply = true, Game} ->
@@ -172,38 +197,51 @@ handle_call({player_ready, SPID, GID}, _From, #{ games := Games } = State) ->
             % Do nothing
             {reply, false, State}
     end;
-
 % When a player starts a game early....
 handle_call({start_game, SPID, GID}, _From, #{ games := Games } = State) ->
     log({"Player Starting game", SPID, GID}),
-    {ok, #{ state := can_start } = Game} = find_game(GID, Games),
-    % Cancel timer
-    case maps:is_key(start_timer, Game) of
-        true ->
-            TRef = maps:get(start_timer, Game),
-            {ok, cancel} = timer:cancel(TRef);
-        false ->
-            ok
-    end,
-    NewGame = set(state, started, Game),
-    NewGames = set(GID, NewGame, Games),
-    scrabble_notify:action({game_starting, GID}),
-    {reply, ok, State#{games => NewGames}};
-% When the countdown runs out...
+    % Here we check if the player is ready or not
+    case find_game(GID, Games) of
+        {ok, #{ state := lobby }} ->
+            log({"Player not ready yet, game not starting", SPID, GID}),
+            {reply, {error, not_ready}, State};
+        {ok, #{ state := started }} ->
+            log({"player tried rejoining game", SPID, GID}),
+            {reply, {error, {not_implemented, cannot_rejoin}}, State};
+        {ok, #{ state := can_start } = Game} ->
+            % Cancel timer
+            case maps:is_key(start_timer, Game) of
+                true ->
+                    TRef = maps:get(start_timer, Game),
+                    {ok, cancel} = timer:cancel(TRef);
+                false ->
+                    ok
+            end,
+            NewGames = do_start_game(GID, Games, Game),
+            {reply, ok, State#{games => NewGames}}
+    end;
+% When the countdown runs out...( rename start above to be countdown )
 handle_call({start_game, GID}, _From, #{ games := Games } = State) ->
     log({"Starting game", GID}),
+    % Here we should be ready, where state should be set internaly
     {ok, #{ state := can_start } = Game} = find_game(GID, Games),
-    NewGame = set(state, started, Game),
-    NewGames = set(GID, NewGame, Games),
-    scrabble_notify:action({game_starting, GID}),
+    NewGames = do_start_game(GID, Games, Game),
     {reply, ok, State#{games => NewGames}};
+% Clear all games [ for testing ONLY ]
+handle_call({clear_all_lobby_games}, _From, #{ games := Games } = State) ->
+    {reply, maps:foldl(fun(GID, Game, _) ->
+        %% take each game and kill the pids
+        %% Just make the 'Games' struct again ( map )
+        do_remove_game(GID, #{ GID => Game })
+    end, undefined, Games), State#{ games => #{} }};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
+    log({hanfle_info, Info, State}),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -214,12 +252,14 @@ code_change(_OldVsn, State, _Extra) ->
 
 % -----------
 
-game_struct(GID) ->
+game_struct(SPID, GID) ->
     % Rather than a map, maybe use a erlang record, and mnesia...
-    #{number => GID,
+    #{host => SPID,
+      number => GID,
       state => lobby,
       players => [],
-      starting_time => undefined
+      starting_time => undefined,
+      game_pid => undefined
     }.
 
 find_game(GID, Games) ->
@@ -292,7 +332,7 @@ player_struct(SPID) ->
 %       lobby
 % }
 can_start_game(Game) ->
-    % Minimum 1, maximum 4 players.
+    % Minimum ?MIN_PLAYERS, maximum ?MAX_PLAYERS players.
     % once 2 players are ready, a 30 sec timer will commence.
     % Once the timer has ran out, then the game starts.
     GID = get(number, Game),
@@ -309,7 +349,7 @@ can_start_game(Game) ->
 at_least_x_players_ready(Players) ->
     at_least_x_players_ready(Players, 0).
 
-at_least_x_players_ready(_, 1) ->
+at_least_x_players_ready(_, ?MIN_PLAYERS) ->
     true;
 at_least_x_players_ready([], _Count) ->
     false;
@@ -322,3 +362,27 @@ start_game_countdown(GID) ->
     log("Starting game timer now..."),
     {ok, _TRef} = timer:apply_after(30000, gen_server, call,
         [?MODULE, {start_game, GID}]).
+
+do_start_game(GID, Games, Game) ->
+
+    %% TODO: get numberof players
+
+    log({game, Game}),
+
+    {ok, P} = scrabble_game:start_link(GID, [<<"ruan">>]),
+    NewGame = set(state, started, Game),
+    NewGame2 = set(game_pid, P, NewGame),
+    NewGames = set(GID, NewGame2, Games),
+    scrabble_notify:action({game_starting, GID}),
+    NewGames.
+
+do_remove_game(GID, Games) ->
+    {ok, Game} = find_game(GID, Games),
+    case maps:get(game_pid, Game) of
+        undefined ->
+            maps:without([GID], Games);
+        P when is_pid(P) ->
+            true = erlang:unlink(P),
+            true = erlang:exit(P),
+            maps:without([GID], Games)
+    end.

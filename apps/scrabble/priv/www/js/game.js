@@ -97,6 +97,7 @@ $(document).ready(function(){
 
     $('.scrabble_hand_square').droppable({
         drop: function( event, ui ) {
+            // console.log(event);
             var dropped = ui.draggable;
             var droppedOn = $(this);
             // console.log(droppedOn[0].childNodes.length);
@@ -116,6 +117,7 @@ $(document).ready(function(){
 
     $('.scrabble_board_square').droppable({
       drop: function( event, ui ) {
+        console.log(event);
         var dropped = ui.draggable;
         var droppedOn = $(this);
         // console.log(droppedOn[0].childNodes.length);
@@ -130,14 +132,14 @@ $(document).ready(function(){
       }
     });
 
-    function get_tiles_on_board(){
+    function get_tiles_on_board() {
         var player_tiles_on_board = [];
         for (var i = 1; i <= 7; i++) {
             var id = $('#player_tile_'+i).parent().attr("id");
             if( id == 'scrabble_hand_square_tile_'+i){ // still in hand
-                //console.log('tile '+i+' in hand ');
+                console.log('tile '+i+' in hand ');
             } else { // on board
-                //console.log('tile '+i+' at '+id);
+                console.log('tile '+i+' at '+id);
                 var tile = 'player_tile_'+i;
                 player_tiles_on_board.push([
                     {tile: tile},

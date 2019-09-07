@@ -27,7 +27,14 @@
 -define(HAND_SIZE, 7).
 
 -behaviour(gen_server).
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 %% -------------------------------------------
 %% Api
@@ -36,8 +43,9 @@
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
 
-start_link(GID, NmrPlayers) when NmrPlayers >= 1 andalso NmrPlayers =< 4 ->
-    gen_server:start_link({local, name(GID)}, ?MODULE, NmrPlayers, []).
+start_link(GID, Players) when length(Players) >= 1 andalso
+                              length(Players) =< 4 ->
+    gen_server:start_link({local, name(GID)}, ?MODULE, Players, []).
 
 player_start(Pid, SPID) ->
     player_take_x_tiles(Pid, SPID, ?HAND_SIZE).
@@ -67,12 +75,42 @@ get(K, Map) ->
 %% -------------------------------------------
 %% Gen Server
 
-init(NmrPlayers) ->
+init(PlayerList) when is_list(PlayerList) ->
+
     Tiles = tile_distribution(),
-    {ok, #{
-        tile_bag => shuffle_tiles(Tiles),
-        players => players_structs(NmrPlayers, []),
+
+    % ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
+    % ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
+
+    TileBag = shuffle_tiles(Tiles),
+    Players = players_structs(PlayerList, []),
+
+    InitialState = #{
+        tile_bag => TileBag,
+        players => Players,
         board => []
+    },
+
+    log({tilebag, TileBag}),
+    log({players, Players}),
+
+    % check who starts first
+
+    % then get players tiles
+
+    {NewBag, UpdatedPlayers} =
+        lists:foldl(fun({SPID, _PlayerMap}, {AccTileBag, AccPlayers}) ->
+            {NewBag, UpdatedPlayers} =
+                take_x_from_bag_into_player_hand(SPID, 7, AccPlayers, AccTileBag)
+        end, {TileBag, Players}, Players),
+
+    % {NewBag, UpdatedPlayers} =
+    %     take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
+
+    %% TODO: simplify code in init/1 with player_take_x_tiles/3
+    {ok, InitialState#{
+        tile_bag => NewBag,
+        players => UpdatedPlayers
     }}.
 
 handle_call({player_take_x_tiles, SPID, Amount}, _From,
@@ -104,12 +142,11 @@ handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
     {reply, PlayerHand, State};
 handle_call({player_leaves, SPID}, _From,
         #{ players := Players } = State) ->
-    io:format("All players ~p\n", [Players]),
-    UpdatedPlayers = remove_player(SPID, Players),
-
+    log({player, SPID, leaves}),
+    log({all_players, Players}),
+    {ok, UpdatedPlayers} = remove_player(SPID, Players),
     % Check if last player left...
-    io:format("UpdatedPlayers ~p\n", [UpdatedPlayers]),
-
+    log({updated_players, UpdatedPlayers}),
     {reply, ok, State#{
         players => UpdatedPlayers
     }};
@@ -221,10 +258,10 @@ take_random_tile(L) when L > [] ->
     {L1, L2} = lists:split(RandPos, L),
     {lists:last(L1), lists:droplast(L1) ++ L2}.
 
-players_structs(0, R) ->
+players_structs([], R) ->
     lists:reverse(R);
-players_structs(SPID, R) when SPID > 0 ->
-    players_structs(SPID -1, [players_struct(SPID) | R]).
+players_structs([SPID|T], R) when SPID > 0 ->
+    players_structs(T, [players_struct(SPID) | R]).
 
 players_struct(SPID) ->
     {SPID,
@@ -236,6 +273,7 @@ players_struct(SPID) ->
     }.
 
 get_player(SPID, Players) ->
+    log({get_players, SPID, Players}),
     {SPID, PlayerMap} = lists:keyfind(SPID, 1, Players),
     {ok, PlayerMap}.
 
@@ -243,6 +281,7 @@ remove_player(SPID, Players) ->
     {ok, lists:keydelete(SPID, 1, Players)}.
 
 take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag) ->
+    log({take, Amount, tiles, players, Players}),
     {ok, #{ hand := ExistingHand } = PlayerMap} = get_player(SPID, Players),
     case erlang:abs(?HAND_SIZE - length(ExistingHand)) of
         Amount -> % Pattern Match on Amount requested
@@ -278,3 +317,6 @@ place_tile_on_board(X, Y, SPID, Tile, Board) ->
 take_tile_from_hand(#{ hand := Hand } = Map, Tile) ->
     NewHand = Hand -- [Tile],
     Map#{ hand => NewHand }.
+
+log(X) ->
+    io:format("~p ~p~n", [?MODULE, X]).
