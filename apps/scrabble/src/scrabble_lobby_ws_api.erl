@@ -96,8 +96,8 @@ handle_decoded([{<<"request">>,<<"create_new_game">>},
     get_all_games_json();
 handle_decoded([{<<"request">>,<<"lobby_games">>}]) ->
     get_all_games_json();
-handle_decoded([{<<"request">>,<<"echo">>}]) ->
-    jsx:encode([{response, echo_reply}]);
+handle_decoded([{<<"request">>,<<"ping">>}]) ->
+    jsx:encode([{response, ping_reply}]);
 handle_decoded([{<<"join_game">>,[{<<"spid">>,SPID},{<<"game">>,GameNum}]}]) ->
     case scrabble_lobby:join_game(SPID, GameNum) of
         game_full ->

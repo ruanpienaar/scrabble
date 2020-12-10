@@ -33,11 +33,11 @@ $(document).ready(function(){
     }
 
     // Websocket keepalive
-    function send_echo() {
+    function send_ping() {
         //console.log(webSocket);
-        webSocket.send(JSON.stringify({'request':'echo'}));
+        webSocket.send(JSON.stringify({'request':'ping'}));
     }
-    setInterval(send_echo, 30000);
+    setInterval(send_ping, 30000);
 
     // websocket handler functions
     function onError(event) {
@@ -53,7 +53,13 @@ $(document).ready(function(){
         // if json == {"redirect":"index.html"}
         // window.location = "index.html"
         var json_data = JSON.parse(event.data);
-        if(json_data.hasOwnProperty('redirect')) {
+        if(json_data.hasOwnProperty('response')) {
+            if(json_data.response == 'ping_reply'){
+                //
+            } else {
+                console.log('Unhandled response '+json_data.response);
+            }
+        } else if(json_data.hasOwnProperty('redirect')) {
             $('#status').html('Going to redirect to '+json_data.redirect+'...');
             setTimeout(function(){
                 window.location.href = json_data.redirect;

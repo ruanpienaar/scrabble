@@ -320,6 +320,11 @@ remove_player(SPID, Game) ->
             true
     end, get(players, Game)).
 
+get_players(#{ players := Players } = Game) ->
+    lists:map(fun(X) ->
+        element(2, lists:keyfind(spid, 1, X))
+    end, Players).
+
 player_struct(SPID) ->
     [{spid, SPID}, {game_state, not_ready}].
 
@@ -364,12 +369,10 @@ start_game_countdown(GID) ->
         [?MODULE, {start_game, GID}]).
 
 do_start_game(GID, Games, Game) ->
-
-    %% TODO: get numberof players
-
     log({game, Game}),
-
-    {ok, P} = scrabble_game:start_link(GID, [<<"ruan">>]),
+    PlayerList = get_players(Game),
+    log({players, PlayerList}),
+    {ok, P} = scrabble_game:start_link(GID, PlayerList),
     NewGame = set(state, started, Game),
     NewGame2 = set(game_pid, P, NewGame),
     NewGames = set(GID, NewGame2, Games),

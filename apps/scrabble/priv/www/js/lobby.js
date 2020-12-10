@@ -41,11 +41,11 @@ $(document).ready(function(){
     }
 
     // Websocket keepalive
-    function send_echo() {
+    function send_ping() {
         //console.log(webSocket);
-        webSocket.send(JSON.stringify({'request':'echo'}));
+        webSocket.send(JSON.stringify({'request':'ping'}));
     }
-    setInterval(send_echo, 30000);
+    setInterval(send_ping, 30000);
 
     // websocket handler functions
     function onError(event) {
@@ -61,7 +61,7 @@ $(document).ready(function(){
     function onMessage(event) {
         var json_data = JSON.parse(event.data);
         if(json_data.hasOwnProperty('response')) {
-            if(json_data.response == 'echo_reply'){
+            if(json_data.response == 'ping_reply'){
                 //
             } else {
                 console.log('Unhandled response '+json_data.response);

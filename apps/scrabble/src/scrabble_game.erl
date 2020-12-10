@@ -43,9 +43,10 @@
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
 
-start_link(GID, Players) when length(Players) >= 1 andalso
-                              length(Players) =< 4 ->
-    gen_server:start_link({local, name(GID)}, ?MODULE, Players, []).
+start_link(GID, PlayerList)
+        when length(PlayerList) >= 1 andalso
+             length(PlayerList) =< 4 ->
+    gen_server:start_link({local, name(GID)}, ?MODULE, PlayerList, []).
 
 player_start(Pid, SPID) ->
     player_take_x_tiles(Pid, SPID, ?HAND_SIZE).

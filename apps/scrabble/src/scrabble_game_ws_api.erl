@@ -48,8 +48,8 @@ handle_msg(ReqJson, Pid) ->
     Json = jsx:decode(ReqJson),
     handle_decoded(Json, Pid).
 
-handle_decoded([{<<"request">>, <<"echo">>}], _Pid) ->
-    jsx:encode([{response, echo_reply}]);
+handle_decoded([{<<"request">>, <<"ping">>}], _Pid) ->
+    jsx:encode([{response, ping_reply}]);
 handle_decoded([[{<<"request">>, <<"player_hand">>}],
                 [{<<"player_id">>, SPID}],
                 [{<<"guid">>, GUID}]], Pid) ->

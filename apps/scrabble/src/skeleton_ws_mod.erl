@@ -37,8 +37,8 @@ handle_msg(ReqJson) ->
     Json = jsx:decode(ReqJson),
     handle_decoded(Json).
 
-handle_decoded([{<<"request">>,<<"echo">>}]) ->
-    jsx:encode([{response, echo_reply}]);
+handle_decoded([{<<"request">>,<<"ping">>}]) ->
+    jsx:encode([{response, ping_reply}]);
 handle_decoded(Json) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).

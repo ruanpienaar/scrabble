@@ -28,6 +28,12 @@ Front end:
  ☐ create function for looking up cookie
  ☐ Change the lobby.js, so that players gets added 1 by 1
  ☐ Show logged in user
+ ☐ indicate to user you're not set to ready, when trying to start game
+ ☐ prevent already used username from joining lobby
+ ☐ show username in game window
+ ☐ show user who created game on index page
+ ☐ change player hand to 7 textboxes
+ ☐ change board to have numerous text boxes, instead of pictures. ( so that front end user types in letter, and onces keyuppress,remove from hand)
 
 Back end:
  ✔ Find a way of starting scrabble_game, when scrabble_lobby is set to ready @done (19-07-19 19:17)
