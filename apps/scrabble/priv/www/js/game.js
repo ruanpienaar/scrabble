@@ -71,13 +71,22 @@ $(document).ready(function(){
 
     function request_player_hand() {
         webSocket.send(JSON.stringify([
-            {'request':'player_hand'},
-            {'player_id':spid},
+            {'request': 'player_hand'},
+            {'player_id': spid},
             {'guid': guid()}
         ]));
     }
 
     function create_player_hand(player_tiles) {
+
+        //alert(player_tiles);
+        for (var t = 1; t <= 7; t++) {
+            // "player_hand_tile_" ++ t
+            var tt = player_tiles[t-1];
+            var ttt = "#player_hand_tile_" + t
+            $(ttt).val(tt);
+        }
+
         // var squares = '';
         // for (var t = 1; t <= 7; t++) {
         //     squares +=
