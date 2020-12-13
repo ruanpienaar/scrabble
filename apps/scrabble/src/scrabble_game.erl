@@ -7,7 +7,8 @@
     player_take_x_tiles/3,
     player_places_tile/5,
     get_player_hand/2,
-    player_leaves/2
+    get_board/2,
+    player_leaves/3
 ]).
 
 -ifdef(TEST).
@@ -60,8 +61,11 @@ player_places_tile(Pid, SPID, Tile, X, Y) ->
 get_player_hand(Pid, SPID) ->
     gen_server:call(Pid, {get_player_hand, SPID}).
 
-player_leaves(Pid, SPID) ->
-    gen_server:call(Pid, {player_leaves, SPID}).
+get_board(Pid, SPID) ->
+    gen_server:call(Pid, {get_board, SPID}).
+
+player_leaves(Pid, SPID, GID) ->
+    gen_server:call(Pid, {player_leaves, SPID, GID}).
 
 % -----------------
 % Data API
@@ -89,7 +93,7 @@ init(PlayerList) when is_list(PlayerList) ->
     InitialState = #{
         tile_bag => TileBag,
         players => Players,
-        board => []
+        board => init_game_board()
     },
 
     log({tilebag, TileBag}),
@@ -101,8 +105,7 @@ init(PlayerList) when is_list(PlayerList) ->
 
     {NewBag, UpdatedPlayers} =
         lists:foldl(fun({SPID, _PlayerMap}, {AccTileBag, AccPlayers}) ->
-            {NewBag, UpdatedPlayers} =
-                take_x_from_bag_into_player_hand(SPID, 7, AccPlayers, AccTileBag)
+            take_x_from_bag_into_player_hand(SPID, 7, AccPlayers, AccTileBag)
         end, {TileBag, Players}, Players),
 
     % {NewBag, UpdatedPlayers} =
@@ -141,7 +144,10 @@ handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
     {ok, PlayerMap} = get_player(SPID, Players),
     PlayerHand = get(hand, PlayerMap),
     {reply, PlayerHand, State};
-handle_call({player_leaves, SPID}, _From,
+handle_call({get_board, SPID}, _From,
+        #{ board := Board } = State) ->
+    {reply, {ok, Board}, State};
+handle_call({player_leaves, SPID, _GID}, _From,
         #{ players := Players } = State) ->
     log({player, SPID, leaves}),
     log({all_players, Players}),
@@ -168,6 +174,21 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% -------------------------------------------
 %% Internal
+
+init_game_board() ->
+    lists:map(fun(X) ->
+        lists:map(fun(Y) ->
+            {
+                binary:list_to_bin([
+                    <<"board_">>,
+                    integer_to_list(X),
+                    <<"_">>,
+                    integer_to_list(Y)
+                ]),
+                [] %% empty
+            }
+        end, lists:seq(1, 15))
+    end, lists:seq(1, 15)).
 
 tile_distribution() ->
     duplicate_tiles(

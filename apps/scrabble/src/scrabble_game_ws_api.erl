@@ -11,18 +11,18 @@
 init(Req, Opts) ->
     {cowboy_websocket, Req, Opts}.
 
-websocket_init(_State) ->
+websocket_init(State) ->
     GID = 1,
-    Pid =
-        case whereis(scrabble_game:name(GID)) of
-            undefined ->
-                {stop, #{}};
-            P when is_pid(P) ->
-                P
-        end,
-    %% TODO: implement, player pics 1 tile, see's who get's the
-    %%       highest number, and then allow that player to start
-    {ok, #{ pid => Pid }}.
+    % Pid =
+    case whereis(scrabble_game:name(GID)) of
+        undefined ->
+            Json = jsx:encode([{'redirect', 'index.html'}]),
+            {reply, {text, Json}, State};
+        Pid when is_pid(Pid) ->
+            %% TODO: implement, player pics 1 tile, see's who get's the
+            %%       highest number, and then allow that player to start
+            {ok, #{ pid => Pid }}
+    end.
 
 websocket_handle({text, Msg}, #{ pid := Pid } = State) ->
     case handle_msg(Msg, Pid) of
@@ -52,6 +52,7 @@ handle_decoded([{<<"request">>, <<"ping">>}], _Pid) ->
     jsx:encode([{response, ping_reply}]);
 handle_decoded([[{<<"request">>, <<"player_hand">>}],
                 [{<<"player_id">>, SPID}],
+                [{<<"gid">>, GID}],
                 [{<<"guid">>, GUID}]], Pid) ->
     Hand =
         [ begin
@@ -64,8 +65,24 @@ handle_decoded([[{<<"request">>, <<"player_hand">>}],
           end || Tile <- scrabble_game:get_player_hand(Pid, SPID)
         ],
     jsx:encode([{player_hand, Hand}]);
-handle_decoded([{<<"player_leave">>, SPID},{<<"gid">>, GID}], Pid) ->
-    ok = scrabble_game:player_leaves(Pid, SPID),
+handle_decoded([[{<<"request">>, <<"game_board">>}],
+                [{<<"player_id">>, SPID}],
+                [{<<"gid">>, GID}],
+                [{<<"guid">>, GUID}]], Pid) ->
+    {ok, GameBoard} = scrabble_game:get_board(Pid, GID),
+    jsx:encode([{response, [{game_board, GameBoard}]}]);
+handle_decoded([{<<"place_word">>, SPID},
+                {<<"gid">>, GID},
+                {<<"tiles">>, Tiles}], Pid) ->
+    % Tiles = [{<<"board_8_8">>,<<"r">>}],
+    %               [{<<"board_9_8">>,<<"u">>}],
+    %               [{<<"board_10_8">>,<<"a">>}],
+    %               [{<<"board_11_8">>,<<"n">>}]
+    ok = scrabble_game:place_word(Pid, SPID, Tiles),
+    jsx:encode([{response, refresh_board}]);
+handle_decoded([{<<"player_leave">>, SPID},
+                {<<"gid">>, GID}], Pid) ->
+    ok = scrabble_game:player_leaves(Pid, SPID, GID),
     jsx:encode([{'redirect', 'index.html'}]);
 handle_decoded(Json, _Pid) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),

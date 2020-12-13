@@ -3,6 +3,11 @@ if (spid == undefined) {
     alert('Unknown User, going back to lobby...');
     window.location.href = 'index.html';
 }
+var gid = Cookies.get('scrabble_game_id');
+if (gid == undefined) {
+    alert('Unknown Game, going back to lobby...');
+    window.location.href = 'index.html';
+}
 
 $(document).ready(function(){
 
@@ -12,7 +17,7 @@ $(document).ready(function(){
     //     window.location.href = 'index.html';
     // });
 
-    // JQuery Websocket:
+    // JQuery Web socket:
     var url = window.location.href;
     var arr = url.split("/");
     var ws_url = "ws://"+arr[2]+"/swg";
@@ -34,20 +39,21 @@ $(document).ready(function(){
         console.log('Socket Status: '+webSocket.readyState+' (Closed)');
     }
 
-    // Websocket keepalive
+    // Web-socket keep alive
     function send_ping() {
         //console.log(webSocket);
         webSocket.send(JSON.stringify({'request':'ping'}));
     }
     setInterval(send_ping, 30000);
 
-    // websocket handler functions
+    // web-socket handler functions
     function onError(event) {
         console.log(event.data);
     }
 
     function onOpen(event) {
         request_player_hand();
+        request_game_board();
     }
 
     function onMessage(event) {
@@ -56,8 +62,11 @@ $(document).ready(function(){
         if(json_data.hasOwnProperty('response')) {
             if(json_data.response == 'ping_reply'){
                 //
+            } else if (json_data.response == 'refresh_board') {
+                request_player_hand();
+                request_game_board();
             } else {
-                console.log('Unhandled response '+json_data.response);
+                console.log('Unhanded response '+json_data.response);
             }
         } else if(json_data.hasOwnProperty('redirect')) {
             $('#status').html('Going to redirect back to lobby...');
@@ -70,12 +79,58 @@ $(document).ready(function(){
     }
 
     function request_player_hand() {
+        var gid = Cookies.get('scrabble_game_id');
         webSocket.send(JSON.stringify([
             {'request': 'player_hand'},
             {'player_id': spid},
+            {'gid': gid},
             {'guid': guid()}
         ]));
     }
+
+    function request_game_board(){
+        webSocket.send(JSON.stringify([
+            {'request': 'game_board'},
+            {'player_id': spid},
+            {'gid': gid},
+            {'guid': guid()}
+        ]));
+    }
+
+    $('#submit_tiles').click(function(){
+        webSocket.send(
+            JSON.stringify(
+                {'player_tiles': [
+                    get_tiles_on_board()
+                ]}
+            )
+        );
+    });
+
+    $('#leave_game').click(function(){
+        var gid = Cookies.get('scrabble_game_id');
+        webSocket.send(
+            JSON.stringify(
+                {
+                    'player_leave': spid,
+                    'gid': gid
+                }
+            )
+        );
+    });
+
+    $('#place_word').click(function(){
+        var gid = Cookies.get('scrabble_game_id');
+        webSocket.send(
+            JSON.stringify(
+                {
+                    'place_word': spid,
+                    'gid': gid,
+                    'tiles': get_word_placement_tiles()
+                }
+            )
+        );
+    });
 
     function create_player_hand(player_tiles) {
 
@@ -165,28 +220,16 @@ $(document).ready(function(){
         return player_tiles_on_board;
     }
 
-    $('#submit_tiles').click(function(){
-        webSocket.send(
-            JSON.stringify(
-                {'player_tiles': [
-                    get_tiles_on_board()
-                ]}
-            )
-        );
-    });
 
-    $('#leave_game').click(function(){
-        var spid = Cookies.get('scrabble_player_id');
-        var gid = Cookies.get('scrabble_game_id');
-        webSocket.send(
-            JSON.stringify(
-                {
-                    'player_leave': spid,
-                    'gid': gid
-                }
-            )
-        );
-    })
+
+    function get_word_placement_tiles(){
+        return [
+            {"board_8_8": "r"},
+            {"board_9_8": "u"},
+            {"board_10_8": "a"},
+            {"board_11_8": "n"}
+        ];
+    }
 
     function guid() {
         var nav = window.navigator;
@@ -306,9 +349,6 @@ $(document).ready(function(){
         $('#scrabble_board').append(row+'</tr>');
     }
 
-    // Once Tile state is resolved, allow play/interaction.
-
-});
 
 // 2 blank tiles (scoring 0 points)
 // 1 point: E ×12, A ×9, I ×9, O ×8, N ×6, R ×6, T ×6, L ×4, S ×4, U ×4
@@ -318,3 +358,67 @@ $(document).ready(function(){
 // 5 points: K ×1
 // 8 points: J ×1, X ×1
 // 10 points: Q ×1, Z ×1
+
+    // Once Tile state is resolved, allow play/interaction.
+
+    function create_game_board(backend_matrix){
+        // simpler board creation
+        var matrix = '';
+        var input_name = '';
+        for (var board_x = 1; board_x < 16; board_x++){
+            matrix += '<tr>';
+            for (var board_y = 1; board_y < 16; board_y++){
+                matrix += '<td>';
+                input_name = 'board_'+board_x+'_'+board_y;
+                if ( board_x == 8 && board_y == 8) {
+                    matrix += '';
+                    matrix += '<input style="background: red;" type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
+                } else {
+                    matrix += '<input type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
+
+                }
+                matrix += '</td>';
+            }
+            matrix += '</tr>';
+        }
+        $('#simplified_board').append(matrix);
+    }
+
+
+
+
+
+});
+
+// TODO: complete front end validation
+
+function check(input_id){
+    // alert(input_id);
+}
+
+function back_into_hand(input_id, input_value){
+    // alert(input_value);
+    // if(input_value == ''){
+    //     alert('nothing to restore');
+    // } else {
+    //     alert('restore to hand');
+    // }
+    // $('#player_hand_tile_1').focus();
+}
+
+function check_matrix_input(input_id, input_value){
+    // if (input_value == ''){ // check if in hand
+    //     var hand_tile = '';
+    //     for (var i = 1; i < 8; i++) {
+    //         hand_tile = '#player_hand_tile_'+i;
+    //         if($(hand_tile).val() == input_value){
+    //             $(hand_tile).val('');
+    //             return true;
+    //         }
+    //     }
+    //     $('#'+input_id).val('');
+    // } else { // place back in hand
+
+    // }
+    // $('#player_hand_tile_1').focus();
+}
