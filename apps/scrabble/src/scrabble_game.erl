@@ -38,6 +38,8 @@
     code_change/3
 ]).
 
+-define(BOARD_TILE_UNSET, <<>>).
+
 %% -------------------------------------------
 %% Api
 
@@ -164,11 +166,55 @@ handle_call({player_leaves, SPID, _GID}, _From,
     {reply, ok, State#{
         players => UpdatedPlayers
     }};
-handle_call({place_word, SPID, Tiles}, _From, #{ board := Board } = State) ->
+handle_call({place_word, SPID, SubmittedBoard}, _From, #{ board := Board } = State) ->
 
-    io:format(" Board in STATE ~p \n\n Board submitted is ~p\n\n", [Board, Tiles]),
+    %% TODO: find a smarter way, of only submitting the entered letters, instead of
+    %%       the entire board...
 
-    {reply, ok, State};
+
+    %% TODO: checks
+    %% is it the first word?
+    %% is the submitted tiles connected to another word?
+        %% -> ( left-right, diag-down, diag-up, top-bottom )
+    %% are all the tiles next to one another ( word )
+    %% Is the submitted word a valid word ?
+
+    io:format(" Board in STATE ~p \n\n Board submitted is ~p\n\n", [Board, SubmittedBoard]),
+    UpdatedBoard = lists:foldl(
+        fun(ProplistRow, BoardAcc1) ->
+            {<<"x">>, X} = lists:keyfind(<<"x">>, 1, ProplistRow),
+            {<<"v">>, Rows} = lists:keyfind(<<"v">>, 1, ProplistRow),
+            lists:foldl(
+                fun(Row, BoardAcc2) ->
+                    {<<"y">>, Y} = lists:keyfind(<<"y">>, 1, Row),
+                    {<<"v">>, V} = lists:keyfind(<<"v">>, 1, Row),
+                    %% value in board STATE
+                    #{ X := XStateVal } = BoardAcc2,
+                    #{ Y := StateCellVal } = XStateVal,
+                    %% STOP if already set, and end-user trying to overwrite
+                    NewYVal = case StateCellVal of
+                        ?BOARD_TILE_UNSET ->
+                            V;
+                        _ ->
+                            StateCellVal
+                    end,
+                    BoardAcc2#{
+                        X => XStateVal#{
+                            Y => NewYVal
+                        }
+                    }
+
+                end,
+                BoardAcc1,
+                Rows
+            )
+
+        end,
+        Board,
+        SubmittedBoard
+    ),
+    %% io:format("UpdatedBoard : ~p\n", [UpdatedBoard]),
+    {reply, ok, State#{ board => UpdatedBoard }};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -192,7 +238,7 @@ init_game_board() ->
         fun(X, XAcc) ->
             XAcc#{ X => lists:foldl(
                 fun(Y, YAcc) ->
-                    YAcc#{ Y => [] }
+                    YAcc#{ Y => ?BOARD_TILE_UNSET }
                 end,
                 #{},
                 lists:seq(1, 15))

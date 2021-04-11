@@ -35,6 +35,8 @@ Front end:
  ☐ show user who created game on index page
  ☐ change player hand to 7 textboxes
  ☐ change board to have numerous text boxes, instead of pictures. ( so that front end user types in letter, and onces keyuppress,remove from hand)
+ ☐ change json decoding to return maps
+ ☐ let players rejoin game
 
 Back end:
  ✔ Find a way of starting scrabble_game, when scrabble_lobby is set to ready @done (19-07-19 19:17)

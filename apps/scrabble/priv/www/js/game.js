@@ -236,10 +236,18 @@ $(document).ready(function(){
                 if ( val != "" ) {
                     console.log(cell + ' - ' + val);
                 }
-                y_array[board_y-1] = val;
+                //y_array[board_y-1] = val;
+                y_array.push({
+                    y: board_y,
+                    v: val
+                });
              }
              console.log(y_array);
-             board_struct[board_x-1] = y_array;
+             // board_struct[board_x-1] = y_array;
+             board_struct.push({ 
+                 x: board_x,
+                 v: y_array
+             })
         }
         //console.log(board_struct);
         return board_struct;
@@ -376,9 +384,6 @@ $(document).ready(function(){
     // Once Tile state is resolved, allow play/interaction.
 
     function create_game_board(backend_matrix){
-
-
-
         // simpler board creation
         var matrix = '';
         var input_name = '';
@@ -389,16 +394,18 @@ $(document).ready(function(){
         for (var board_x = 1; board_x <= 15; board_x++){
             matrix += '<tr>';
             for (var board_y = 1; board_y <= 15; board_y++){
-
                 //backend_matrix_tile = 'board_'+ board_x + '_' + board_y;
-                //console.log(board_x + '_' + board_y + backend_matrix[board_x][board_y]);
-
+                var cell_val = '';
+                if(backend_matrix[board_x][board_y] != ""){
+                    //console.log(board_x + '_' + board_y + backend_matrix[board_x][board_y]);
+                    cell_val = 'value=\"' + backend_matrix[board_x][board_y] + '\" disabled=\"disabled\" ';
+                }
                 matrix += '<td>';
                 input_name = 'board_'+board_x+'_'+board_y;
                 if ( board_x == 8 && board_y == 8) {
-                    matrix += '<input style="background: red;" type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
+                    matrix += '<input '+cell_val+' style="background: red;" type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
                 } else {
-                    matrix += '<input type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
+                    matrix += '<input '+cell_val+' type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
 
                 }
                 matrix += '</td>';
