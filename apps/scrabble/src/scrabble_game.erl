@@ -45,6 +45,7 @@
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
 
+-spec start_link(scrabble:game_id(), scrabble:player_list()) -> {ok, pid()}.
 start_link(GID, PlayerList)
         when length(PlayerList) >= 1 andalso
              length(PlayerList) =< 4 ->
