@@ -1,4 +1,5 @@
 Front end:
+ ☐ change from apps/scrabble/src format to just src/ geesh
  ☐ STOP USING DOCUMENT READY - move scripts to bottom of page!!!!!!!!!!!!!! ( i cannot generate dynamic html, since the original functions gets stuck in document.ready )
  ☐ Get game status updates VIA websocket
  ✔ move the page from awaiting_game to game when game started... @done (19-07-19 19:17)

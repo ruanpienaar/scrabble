@@ -50,46 +50,46 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, {}, []).
 
 register_player(SPID, GUID) ->
-    gen_server:call(?MODULE, {register_player, SPID, GUID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GUID}).
 
 deregister_player(SPID, GUID) ->
-    gen_server:call(?MODULE, {deregister_player, SPID, GUID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GUID}).
 
 all_players() ->
-    gen_server:call(?MODULE, {all_players}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME}).
 
 all_player_details() ->
-    gen_server:call(?MODULE, {all_player_details}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME}).
 
 create_game(SPID) ->
-    gen_server:call(?MODULE, {create_game, SPID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID}).
 
 all_games() ->
-    gen_server:call(?MODULE, {all_games}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME}).
 
 join_game(SPID, GID) ->
-    gen_server:call(?MODULE, {join_game, SPID, GID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GID}).
 
 leave_game(SPID, GID) ->
-    gen_server:call(?MODULE, {leave_game, SPID, GID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GID}).
 
 spectate_game(SPID, GID) ->
-    gen_server:call(?MODULE, {spectate_game, SPID, GID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GID}).
 
 % return {ok, game_map} | error
 get_game(GID) ->
-    gen_server:call(?MODULE, {get_game, GID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, GID}).
 
 player_ready(SPID, GID) ->
-    gen_server:call(?MODULE, {player_ready, SPID, GID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GID}).
 
 start_game(SPID, GID) ->
-    gen_server:call(?MODULE, {start_game, SPID, GID}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME, SPID, GID}).
 
 % TESTS ONLY
 
 clear_all_lobby_games() ->
-    gen_server:call(?MODULE, {clear_all_lobby_games}).
+    gen_server:call(?MODULE, {?FUNCTION_NAME}).
 
 % -----------------
 % Data API
@@ -133,8 +133,8 @@ handle_call({all_players}, _From, #{ players := Players } = State) ->
 handle_call({all_player_details}, _From, #{ players := Players } = State) ->
     {reply, Players, State};
 handle_call({create_game, SPID}, _From, #{ games := Games } = State) ->
-    NewCount = maps:size(Games)+1,
-    NewGames = Games#{ NewCount => game_struct(SPID, NewCount) },
+    GID = get_new_game_id(Games),
+    NewGames = Games#{ GID => game_struct(SPID, GID) },
     {reply, NewGames, State#{ games => NewGames }};
 handle_call({remove_game, GID}, _From, #{ games := Games } = State) ->
     NewGames = do_remove_game(GID, Games),
@@ -251,6 +251,9 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 % -----------
+
+get_new_game_id(Games) ->
+    NewCount = maps:size(Games)+1.
 
 game_struct(SPID, GID) ->
     % Rather than a map, maybe use a erlang record, and mnesia...
