@@ -1,6 +1,6 @@
 {application, scrabble,
  [
-  {description, ""},
+  {description, "scrabble word tile game"},
   {vsn, "1"},
   {registered, []},
   {applications, [

@@ -1,15 +1,17 @@
+%% @doc
+%%
+%% @end
 -module(scrabble_app).
 
 -behaviour(application).
 
 %% Application callbacks
--export([start/2, stop/1]).
+-export([
+    start/2,
+    stop/1
+]).
 
 -include("scrabble.hrl").
-
-%% ===================================================================
-%% Application callbacks
-%% ===================================================================
 
 start(_StartType, _StartArgs) ->
     {ok, _} = scrabble_sup:start_link().

@@ -8,7 +8,8 @@
     player_places_tile/5,
     get_player_hand/2,
     get_board/2,
-    player_leaves/3
+    player_leaves/3,
+    place_word/3
 ]).
 
 -ifdef(TEST).
@@ -67,6 +68,9 @@ get_board(Pid, SPID) ->
 player_leaves(Pid, SPID, GID) ->
     gen_server:call(Pid, {player_leaves, SPID, GID}).
 
+place_word(Pid, SPID, Tiles) ->
+    gen_server:call(Pid, {?FUNCTION_NAME, SPID, Tiles}).
+
 % -----------------
 % Data API
 
@@ -89,15 +93,17 @@ init(PlayerList) when is_list(PlayerList) ->
 
     TileBag = shuffle_tiles(Tiles),
     Players = players_structs(PlayerList, []),
+    GameBoard = init_game_board(),
 
     InitialState = #{
         tile_bag => TileBag,
         players => Players,
-        board => init_game_board()
+        board => GameBoard
     },
 
     log({tilebag, TileBag}),
     log({players, Players}),
+    log({board, GameBoard}),
 
     % check who starts first
 
@@ -144,7 +150,7 @@ handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
     {ok, PlayerMap} = get_player(SPID, Players),
     PlayerHand = get(hand, PlayerMap),
     {reply, PlayerHand, State};
-handle_call({get_board, SPID}, _From,
+handle_call({get_board, _SPID}, _From,
         #{ board := Board } = State) ->
     {reply, {ok, Board}, State};
 handle_call({player_leaves, SPID, _GID}, _From,
@@ -157,6 +163,11 @@ handle_call({player_leaves, SPID, _GID}, _From,
     {reply, ok, State#{
         players => UpdatedPlayers
     }};
+handle_call({place_word, SPID, Tiles}, _From, #{ board := Board } = State) ->
+
+    io:format(" Board in STATE ~p \n\n Board submitted is ~p\n\n", [Board, Tiles]),
+
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -176,19 +187,19 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal
 
 init_game_board() ->
-    lists:map(fun(X) ->
-        lists:map(fun(Y) ->
-            {
-                binary:list_to_bin([
-                    <<"board_">>,
-                    integer_to_list(X),
-                    <<"_">>,
-                    integer_to_list(Y)
-                ]),
-                [] %% empty
+    lists:foldl(
+        fun(X, XAcc) ->
+            XAcc#{ X => lists:foldl(
+                fun(Y, YAcc) ->
+                    YAcc#{ Y => [] }
+                end,
+                #{},
+                lists:seq(1, 15))
             }
-        end, lists:seq(1, 15))
-    end, lists:seq(1, 15)).
+        end,
+        #{},
+        lists:seq(1, 15)
+    ).
 
 tile_distribution() ->
     duplicate_tiles(

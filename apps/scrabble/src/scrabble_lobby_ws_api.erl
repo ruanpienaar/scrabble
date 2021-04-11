@@ -9,11 +9,11 @@
 ]).
 
 init(Req, Opts) ->
-    scrabble_ws_mon:monitor_ws_pid(self()),
+    _ = scrabble_ws_mon:monitor_ws_pid(self()),
     {cowboy_websocket, Req, Opts}.
 
 websocket_init(State) ->
-    do_subscribe(),
+    true = do_subscribe(),
     {ok, State}.
 
 do_subscribe() ->
@@ -38,7 +38,7 @@ do_handle_message(Msg, State) ->
             {reply, {text, Json}, State}
     end.
 
-websocket_info({scrabble_notify,lobby_players,{A, _NewPlayer}}, State)
+websocket_info({scrabble_notify, lobby_players,{A, _NewPlayer}}, State)
         when A == new_lobby_player orelse
              A == rem_lobby_player ->
     Json = jsx:encode([{lobby_players, scrabble_lobby:all_players()}]),
@@ -78,13 +78,16 @@ handle_msg(ReqJson) ->
 %% TODO: change some of these to "request" items.
 handle_decoded([{<<"register_lobby_player">>, SPID},
                 {<<"guid">>, GUID}]) ->
-    _NewPlayers = scrabble_lobby:register_player(SPID, GUID),
-    scrabble_notify:action({new_lobby_player, SPID}),
-    ok;
+    case scrabble_lobby:register_player(SPID, GUID) of
+        true ->
+            _ = scrabble_notify:action({new_lobby_player, SPID}),
+            jsx:encode([{player_registered, SPID}]);
+        false ->
+            jsx:encode([{error, <<"username already taken">>}])
+    end;
 handle_decoded([{<<"deregister_lobby_player">>, SPID},
                 {<<"guid">>, GUID}]) ->
-    NewPlayers = scrabble_lobby:deregister_player(SPID, GUID),
-    io:format("[~p] New players in ~p\n", [?MODULE, NewPlayers]),
+    _ = scrabble_lobby:deregister_player(SPID, GUID),
     scrabble_notify:action({rem_lobby_player, SPID}),
     ok;
 handle_decoded([{<<"request">>,<<"lobby_players">>}]) ->

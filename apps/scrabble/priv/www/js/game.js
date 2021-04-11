@@ -65,6 +65,10 @@ $(document).ready(function(){
             } else if (json_data.response == 'refresh_board') {
                 request_player_hand();
                 request_game_board();
+            } else if (json_data.response.hasOwnProperty('game_board')) {
+                //alert(json_data.response.game_board);
+                create_game_board(json_data.response.game_board)
+
             } else {
                 console.log('Unhanded response '+json_data.response);
             }
@@ -215,20 +219,30 @@ $(document).ready(function(){
                     {tile: tile},
                     {position: id}
                 ]);
+                //tiles = get_word_placement_tiles();
             }
         }
         return player_tiles_on_board;
     }
 
-
-
     function get_word_placement_tiles(){
-        return [
-            {"board_8_8": "r"},
-            {"board_9_8": "u"},
-            {"board_10_8": "a"},
-            {"board_11_8": "n"}
-        ];
+        // maybe don't send the entire board....
+        var board_struct = new Array ();
+        for (var board_x = 1; board_x <= 15; board_x++){
+            var y_array = new Array ();
+            for (var board_y = 1; board_y <= 15; board_y++){
+                cell = '#board_' + board_x + '_' + board_y;
+                val = $(cell).val();
+                if ( val != "" ) {
+                    console.log(cell + ' - ' + val);
+                }
+                y_array[board_y-1] = val;
+             }
+             console.log(y_array);
+             board_struct[board_x-1] = y_array;
+        }
+        //console.log(board_struct);
+        return board_struct;
     }
 
     function guid() {
@@ -362,16 +376,26 @@ $(document).ready(function(){
     // Once Tile state is resolved, allow play/interaction.
 
     function create_game_board(backend_matrix){
+
+
+
         // simpler board creation
         var matrix = '';
         var input_name = '';
-        for (var board_x = 1; board_x < 16; board_x++){
+        var backend_matrix_tile = '';
+
+        // 'board_X_Y'
+
+        for (var board_x = 1; board_x <= 15; board_x++){
             matrix += '<tr>';
-            for (var board_y = 1; board_y < 16; board_y++){
+            for (var board_y = 1; board_y <= 15; board_y++){
+
+                //backend_matrix_tile = 'board_'+ board_x + '_' + board_y;
+                //console.log(board_x + '_' + board_y + backend_matrix[board_x][board_y]);
+
                 matrix += '<td>';
                 input_name = 'board_'+board_x+'_'+board_y;
                 if ( board_x == 8 && board_y == 8) {
-                    matrix += '';
                     matrix += '<input style="background: red;" type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
                 } else {
                     matrix += '<input type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
@@ -381,12 +405,9 @@ $(document).ready(function(){
             }
             matrix += '</tr>';
         }
+        $('#simplified_board').empty();
         $('#simplified_board').append(matrix);
     }
-
-
-
-
 
 });
 

@@ -5,26 +5,55 @@
 %% the lobby and the game processes are seperate gen_statem'
 %% @end
 
-%% API
 -export([
     start_link/0
 ]).
 
-%% State M exports
+-include_lib("kernel/include/logger.hrl").
+
+-behaviour(gen_statem).
+
 -export([
-    % init/1, callback_mode/0, terminate/3
+    callback_mode/0,
+    init/1,
+    terminate/3,
+    code_change/4
+]).
+-export([
+    lobby_state/3
 ]).
 
--define(REG_NAME, {local, ?MODULE}).
-
-%% -----------------------------------------------------------------------------
-%% API
-
+-spec start_link() ->
+            {ok, Pid :: pid()} |
+            ignore |
+            {error, Error :: term()}.
 start_link() ->
-    % gen_statem:start_link(?REG_NAME, ?MODULE, #{ slices => 0 }, []).
-    {ok, self()}.
+    gen_statem:start_link({local, ?MODULE}, ?MODULE, {}, []).
 
-%% -----------------------------------------------------------------------------
+-spec callback_mode() -> gen_statem:callback_mode_result().
+callback_mode() ->
+    [state_functions].
 
-% init(Data) ->
-%     {ok, initial_state, Data}.
+-spec init(Args :: term()) ->
+          gen_statem:init_result(term()).
+init({}) ->
+    {ok, lobby_state, _Data=#{}}.
+
+lobby_state(T=internal, Msg, State) ->
+    ?LOG_WARNING("Unhandled ~p ~p", [T, Msg]),
+    {next_state, lobby_state, State};
+lobby_state(T=timeout, Msg, State) ->
+    ?LOG_WARNING("Unhandled ~p ~p", [T, Msg]),
+    {next_state, lobby_state, State};
+lobby_state({call, From}, _Msg, State) ->
+    {next_state, lobby_state, State, [{reply, From, ok}]};
+lobby_state(cast, _Msg, State) ->
+    {next_state, lobby_state, State};
+lobby_state(info, _Msg, State) ->
+    {next_state, lobby_state, State}.
+
+terminate(_Reason, _StateName, _State) ->
+    void.
+
+code_change(_OldVsn, StateName, State, _Extra) ->
+    {ok, StateName, State}.

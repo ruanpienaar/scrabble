@@ -1,3 +1,6 @@
+%% @doc
+%%
+%% @end
 -module(scrabble_lobby).
 
 -export([
@@ -38,8 +41,6 @@
     code_change/3
 ]).
 
--define(SERVER, ?MODULE).
-
 % -----------------
 % Players
 % SPID = Scrabble Player Identification
@@ -47,7 +48,7 @@
 %% TODO: user ?FUNCTION_NAME
 
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, {}, []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, {}, []).
 
 register_player(SPID, GUID) ->
     gen_server:call(?MODULE, {register_player, SPID, GUID}).
@@ -114,15 +115,16 @@ init({}) ->
 
 handle_call({register_player, SPID, GUID}, _From,
             #{ players := Players } = State) ->
-    NewPlayers =
-        case lists:member({SPID, GUID}, Players) of
-            true ->
-                log({player_and_guid_already_registered, {SPID, GUID}}),
-                Players;
+    SPIDPresent = lists:keyfind(SPID, 1, Players),
+    {NewPlayers, RegisteredBool} =
+        case SPIDPresent of
+            {SPID, _} ->
+                log({player_already_registered, {SPID, GUID}}),
+                {Players, false};
             false ->
-                [{SPID, GUID} | Players]
+                {[{SPID, GUID} | Players], true}
         end,
-    {reply, proplists:get_keys(NewPlayers), State#{ players => NewPlayers }};
+    {reply, RegisteredBool, State#{ players => NewPlayers }};
 handle_call({deregister_player, SPID, _GUID}, _From, #{ players := Players } = State) ->
     io:format("deregister SPID ~p\n", [SPID]),
     NewPlayers = lists:keydelete(SPID, 1, Players),
@@ -229,7 +231,7 @@ handle_call({start_game, GID}, _From, #{ games := Games } = State) ->
     {reply, ok, State#{games => NewGames}};
 % Clear all games [ for testing ONLY ]
 handle_call({clear_all_lobby_games}, _From, #{ games := Games } = State) ->
-    {reply, maps:foldl(fun(GID, Game, _) ->
+    {reply, maps:fold(fun(GID, Game, _) ->
         %% take each game and kill the pids
         %% Just make the 'Games' struct again ( map )
         do_remove_game(GID, #{ GID => Game })
@@ -372,11 +374,11 @@ do_start_game(GID, Games, Game) ->
     log({game, Game}),
     PlayerList = get_players(Game),
     log({players, PlayerList}),
-    {ok, P} = scrabble_game:start_link(GID, PlayerList),
+    {ok, P} = scrabble_game_sup:start_child(GID, PlayerList),
     NewGame = set(state, started, Game),
     NewGame2 = set(game_pid, P, NewGame),
     NewGames = set(GID, NewGame2, Games),
-    scrabble_notify:action({game_starting, GID}),
+    _ = scrabble_notify:action({game_starting, GID}),
     NewGames.
 
 do_remove_game(GID, Games) ->

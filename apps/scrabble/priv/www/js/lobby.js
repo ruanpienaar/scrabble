@@ -1,17 +1,23 @@
-
-
 $(document).ready(function(){
 
-    s = Cookies.get('scrabble_player_id');
-    if(s == undefined){
-        console.log('Anonymous user started...');
-        // TODO: Set field 'anon' to true
-        // TODO: generate anon cookie value...
-        $('#signout').attr("disabled",'disabled');
-        $('#create_new_game').attr("disabled",'disabled');
-    } else {
-        console.log('Scrabble player id '+s+' started...');
-        $('#join_lobby').attr("disabled", 'disabled');
+    toggle_ui_inputs();
+
+    function toggle_ui_inputs(){
+        console.log("toggle_ui_inputs");
+        s = Cookies.get('scrabble_player_id');
+        if(s == undefined){
+            console.log('Anonymous user started...');
+            // TODO: Set field 'anon' to true
+            // TODO: generate anon cookie value...
+            $('#signout').attr("disabled",true);
+            $('#create_new_game').attr("disabled",true);
+            $('#join_lobby').attr("disabled", false);
+        } else {
+            console.log('Scrabble player id '+s+' started...');
+            $('#signout').attr("disabled",false);
+            $('#create_new_game').attr("disabled",false);
+            $('#join_lobby').attr("disabled", true);
+        }
     }
 
     function connect_websocket(){
@@ -66,6 +72,10 @@ $(document).ready(function(){
             } else {
                 console.log('Unhandled response '+json_data.response);
             }
+        } else if(json_data.hasOwnProperty('player_registered')) {
+            spid = json_data.player_registered;
+            Cookies.set('scrabble_player_id', spid);
+            toggle_ui_inputs();
         } else if(json_data.hasOwnProperty('lobby_players')) {
             spid = Cookies.get('scrabble_player_id');
             $('#lobby_players').empty();
@@ -117,13 +127,14 @@ $(document).ready(function(){
                     +'<td>'+players_html+'</td>'
                     +'</tr>');
             };
+        } else if (json_data.hasOwnProperty('error')) {
+            alert(json_data.error);
         } else {
             console.log(event.data);
         }
     }
 
     function register_player(spid) {
-        Cookies.set('scrabble_player_id', spid);
         guid = make_guid();
         webSocket.send(JSON.stringify(
             {
@@ -131,7 +142,6 @@ $(document).ready(function(){
                 'guid': guid
             }
         ));
-        window.location.href = 'index.html';
     }
 
     function get_lobby_players() {
@@ -172,17 +182,16 @@ $(document).ready(function(){
                     }
                 },
                 close: function() {
-                    var s = $('#sumpin').val();
-                    if (s.length<3){
+                    var spid = $('#sumpin').val();
+                    if (spid.length<3){
                         alert('Please type more than 3 characters');
                     } else {
                         //alert('Welcome : ' + s);
-                        register_player(s);
+                        register_player(spid);
                     }
                 }
             });
         }
-
     });
 
     // Signout:
@@ -198,7 +207,7 @@ $(document).ready(function(){
             console.log('deleting cookie');
             Cookies.remove('scrabble_player_id');
             console.log('Cookie deleted');
-            window.location.href = 'index.html';
+            toggle_ui_inputs();
             get_lobby_players();
         }
     });

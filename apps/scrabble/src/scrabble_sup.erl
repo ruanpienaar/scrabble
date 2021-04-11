@@ -8,9 +8,6 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
 -include("scrabble.hrl").
 
 %% ===================================================================
@@ -26,8 +23,32 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10}, [
-        ?CHILD(scrabble_ws_mon, worker),
-        ?CHILD(scrabble_lobby, worker),
-        ?CHILD(scrabble_web, worker)
+        #{
+            id => scrabble_game_sup,
+            start => {scrabble_game_sup, start_link, []},
+            restart => temporary,
+            type => supervisor,
+            shutdown => 30000
+        },
+        #{
+            id => scrabble_ws_mon,
+            start => {scrabble_ws_mon, start_link, []},
+            restart => temporary,
+            type => supervisor,
+            shutdown => 30000
+        },
+        #{
+            id => scrabble_lobby,
+            start => {scrabble_lobby, start_link, []},
+            restart => temporary,
+            type => supervisor,
+            shutdown => 30000
+        },
+        #{
+            id => scrabble_web,
+            start => {scrabble_web, start_link, []},
+            restart => temporary,
+            type => supervisor,
+            shutdown => 30000
+        }
     ]} }.
-
