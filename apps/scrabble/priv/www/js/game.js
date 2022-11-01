@@ -84,55 +84,49 @@ $(document).ready(function(){
 
     function request_player_hand() {
         var gid = Cookies.get('scrabble_game_id');
-        webSocket.send(JSON.stringify([
-            {'request': 'player_hand'},
-            {'player_id': spid},
-            {'gid': gid},
-            {'guid': guid()}
-        ]));
+        webSocket.send(JSON.stringify({
+            'request': 'player_hand',
+            'player_id': spid,
+            'gid': gid,
+            'guid': guid()
+        }));
     }
 
     function request_game_board(){
-        webSocket.send(JSON.stringify([
-            {'request': 'game_board'},
-            {'player_id': spid},
-            {'gid': gid},
-            {'guid': guid()}
-        ]));
+        webSocket.send(JSON.stringify({
+            'request': 'game_board',
+            'player_id': spid,
+            'gid': gid,
+            'guid': guid()
+        }));
     }
 
     $('#submit_tiles').click(function(){
         webSocket.send(
-            JSON.stringify(
-                {'player_tiles': [
-                    get_tiles_on_board()
-                ]}
-            )
+            JSON.stringify({
+                'player_tiles': get_tiles_on_board()
+            })
         );
     });
 
     $('#leave_game').click(function(){
         var gid = Cookies.get('scrabble_game_id');
         webSocket.send(
-            JSON.stringify(
-                {
-                    'player_leave': spid,
-                    'gid': gid
-                }
-            )
+            JSON.stringify({
+                'player_leave': spid,
+                'gid': gid
+            })
         );
     });
 
     $('#place_word').click(function(){
         var gid = Cookies.get('scrabble_game_id');
         webSocket.send(
-            JSON.stringify(
-                {
-                    'place_word': spid,
-                    'gid': gid,
-                    'tiles': get_word_placement_tiles()
-                }
-            )
+            JSON.stringify({
+                'place_word': spid,
+                'gid': gid,
+                'tiles': get_word_placement_tiles()
+            })
         );
     });
 
@@ -226,30 +220,25 @@ $(document).ready(function(){
     }
 
     function get_word_placement_tiles(){
-        // maybe don't send the entire board....
         var board_struct = new Array ();
         for (var board_x = 1; board_x <= 15; board_x++){
             var y_array = new Array ();
             for (var board_y = 1; board_y <= 15; board_y++){
                 cell = '#board_' + board_x + '_' + board_y;
                 val = $(cell).val();
-                if ( val != "" ) {
+                console.log("NOT DISABLED " + !$(cell).attr("disabled"));
+                notDisabled = !$(cell).attr("disabled");
+                if ( val != "" && notDisabled ) {
                     console.log(cell + ' - ' + val);
+                    board_struct.push({
+                        x: board_x,
+                        y: board_y,
+                        value: val
+                    })
                 }
-                //y_array[board_y-1] = val;
-                y_array.push({
-                    y: board_y,
-                    v: val
-                });
              }
-             console.log(y_array);
-             // board_struct[board_x-1] = y_array;
-             board_struct.push({ 
-                 x: board_x,
-                 v: y_array
-             })
         }
-        //console.log(board_struct);
+        console.log(board_struct);
         return board_struct;
     }
 

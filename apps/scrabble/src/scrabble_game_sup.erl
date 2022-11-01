@@ -2,7 +2,8 @@
 
 -export([
     start_link/0,
-    start_child/2
+    start_child/2,
+    show_first_child_state/0
 ]).
 
 -behaviour(supervisor).
@@ -25,3 +26,6 @@ child_spec(GID, PlayerList) ->
         restart => temporary,
         shutdown => 5000
     }.
+
+show_first_child_state() ->
+    sys:get_state(element(2, hd(supervisor:which_children(?MODULE)))).

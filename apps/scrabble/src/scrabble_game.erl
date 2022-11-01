@@ -1,4 +1,11 @@
+%% TODO: migrate board related code to scrabble board
+%% TODO: migrate player related code to scrabble_player.
+%%       Same for hand
+%% TODO: create scrabble_score.erl
+
 -module(scrabble_game).
+
+-include("scrabble.hrl").
 
 -export([
     name/1,
@@ -37,8 +44,6 @@
     terminate/2,
     code_change/3
 ]).
-
--define(BOARD_TILE_UNSET, <<>>).
 
 %% -------------------------------------------
 %% Api
@@ -96,9 +101,10 @@ init(PlayerList) when is_list(PlayerList) ->
 
     TileBag = shuffle_tiles(Tiles),
     Players = players_structs(PlayerList, []),
-    GameBoard = init_game_board(),
+    GameBoard = scrabble_board:init_game_board(),
 
     InitialState = #{
+        empty => true,
         tile_bag => TileBag,
         players => Players,
         board => GameBoard
@@ -166,55 +172,67 @@ handle_call({player_leaves, SPID, _GID}, _From,
     {reply, ok, State#{
         players => UpdatedPlayers
     }};
-handle_call({place_word, SPID, SubmittedBoard}, _From, #{ board := Board } = State) ->
 
-    %% TODO: find a smarter way, of only submitting the entered letters, instead of
-    %%       the entire board...
+%% First word!
+handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := true } = State) ->
+    #{
+        board := Board,
+        players := Players
+    } = State,
+    % 10> scrabble_game [#{value => <<"a">>,x => 8,y => 8},
+    %                    #{value => <<"a">>,x => 8,y => 9},
+    %                    #{value => <<"a">>,x => 8,y => 10}]
+    case is_starting_cell_submitted(SubmittedBoard) of
+        true ->
+            case is_valid_word(SubmittedBoard) of
+                true ->
+
+                    % {ok, PlayerMap} = get_player(SPID, Players),
+                    % PlayerHand = get(hand, PlayerMap),
+
+                    %% TODO: remove letters from player hand
+                    %% TODO: update player hand with missing letters from tilebag.
+
+                    UpdatedBoard = place_tiles_on_board(SubmittedBoard, Board),
+                    {reply, ok, State#{
+                        board => UpdatedBoard,
+                        empty => false
+                    }};
+                false ->
+                    {reply, {error, invalid_word}, State}
+            end;
+        false ->
+            {reply, {error, not_starting_square}, State}
+    end;
+%% Consecutive words
+handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := false } = State) ->
+    #{
+        board := Board,
+        players := _Players
+    } = State,
+    %% NB:
+
+    %% TODO: check SubmittedBoard valid
+    %% TODO: get adjacent tiles connected to SubmittedBoard from Board.
+    %%       Are they adjacent to any other tiles? No -> return error
+    %% TODO: merge adjacent + SubmitBoard into FullWord.
+    %%       Is valid word? No -> Error invalid word
+    %% TODO: place word on board
+    %% TODO: remove letters from player hand
+    %%       update player hand with missing letters from tilebag.
 
 
-    %% TODO: checks
-    %% is it the first word?
-    %% is the submitted tiles connected to another word?
+
         %% -> ( left-right, diag-down, diag-up, top-bottom )
     %% are all the tiles next to one another ( word )
     %% Is the submitted word a valid word ?
 
-    io:format(" Board in STATE ~p \n\n Board submitted is ~p\n\n", [Board, SubmittedBoard]),
-    UpdatedBoard = lists:foldl(
-        fun(ProplistRow, BoardAcc1) ->
-            {<<"x">>, X} = lists:keyfind(<<"x">>, 1, ProplistRow),
-            {<<"v">>, Rows} = lists:keyfind(<<"v">>, 1, ProplistRow),
-            lists:foldl(
-                fun(Row, BoardAcc2) ->
-                    {<<"y">>, Y} = lists:keyfind(<<"y">>, 1, Row),
-                    {<<"v">>, V} = lists:keyfind(<<"v">>, 1, Row),
-                    %% value in board STATE
-                    #{ X := XStateVal } = BoardAcc2,
-                    #{ Y := StateCellVal } = XStateVal,
-                    %% STOP if already set, and end-user trying to overwrite
-                    NewYVal = case StateCellVal of
-                        ?BOARD_TILE_UNSET ->
-                            V;
-                        _ ->
-                            StateCellVal
-                    end,
-                    BoardAcc2#{
-                        X => XStateVal#{
-                            Y => NewYVal
-                        }
-                    }
+    % io:format(" Board in STATE ~p \n\n Board submitted is ~p\n\n", [Board, SubmittedBoard]),
 
-                end,
-                BoardAcc1,
-                Rows
-            )
-
-        end,
-        Board,
-        SubmittedBoard
-    ),
     %% io:format("UpdatedBoard : ~p\n", [UpdatedBoard]),
-    {reply, ok, State#{ board => UpdatedBoard }};
+    {reply, ok, State#{
+        % board => UpdatedBoard
+    }};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -233,20 +251,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% -------------------------------------------
 %% Internal
 
-init_game_board() ->
-    lists:foldl(
-        fun(X, XAcc) ->
-            XAcc#{ X => lists:foldl(
-                fun(Y, YAcc) ->
-                    YAcc#{ Y => ?BOARD_TILE_UNSET }
-                end,
-                #{},
-                lists:seq(1, 15))
-            }
-        end,
-        #{},
-        lists:seq(1, 15)
-    ).
+
 
 tile_distribution() ->
     duplicate_tiles(
@@ -400,3 +405,47 @@ take_tile_from_hand(#{ hand := Hand } = Map, Tile) ->
 
 log(X) ->
     io:format("~p ~p~n", [?MODULE, X]).
+
+is_starting_cell_submitted(SubmittedBoard) ->
+    % 10> scrabble_game [#{value => <<"a">>,x => 8,y => 8},
+    %                    #{value => <<"a">>,x => 8,y => 9},
+    %                    #{value => <<"a">>,x => 8,y => 10}]
+    lists:any(
+        fun
+        (#{ x := 8, y := 8 }) ->
+            true;
+        (_) ->
+            false
+        end,
+        SubmittedBoard
+    ).
+
+is_valid_word(_SubmittedBoard) ->
+    %% TODO: is_valid_letter
+    %% TODO: check dictionary API
+    true.
+
+place_tiles_on_board(SubmittedBoard, Board) ->
+    lists:foldl(
+        fun(SubmitLetter, BoardAcc) ->
+            #{
+                x := X,
+                y := Y,
+                value := LetterValue
+            } = SubmitLetter,
+            BoardRow = maps:get(X, BoardAcc),
+            BoardCell = maps:get(Y, BoardRow),
+            case BoardCell of
+                ?BOARD_TILE_UNSET ->
+                    BoardAcc#{
+                        X => BoardRow#{
+                            Y => LetterValue
+                        }
+                    };
+                ExistingVal ->
+                    throw({error, {letter_already_set, X, Y, ExistingVal}})
+            end
+        end,
+        Board,
+        SubmittedBoard
+    ).

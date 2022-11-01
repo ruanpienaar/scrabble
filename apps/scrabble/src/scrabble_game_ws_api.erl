@@ -45,15 +45,25 @@ terminate(State, HandlerState, Reason) ->
     ok.
 
 handle_msg(ReqJson, Pid) ->
-    Json = jsx:decode(ReqJson),
+    Json = jsx:decode(ReqJson, [{labels, attempt_atom}, return_maps]),
     handle_decoded(Json, Pid).
 
-handle_decoded([{<<"request">>, <<"ping">>}], _Pid) ->
-    jsx:encode([{response, ping_reply}]);
-handle_decoded([[{<<"request">>, <<"player_hand">>}],
-                [{<<"player_id">>, SPID}],
-                [{<<"gid">>, GID}],
-                [{<<"guid">>, GUID}]], Pid) ->
+handle_decoded(
+        #{
+            request := <<"ping">>
+        },
+        _Pid
+    ) ->
+    jsx:encode(#{ response => ping_reply });
+handle_decoded(
+        #{
+            request := <<"player_hand">>,
+            player_id := SPID,
+            gid := _GID,
+            guid := _GUID
+        },
+        Pid
+    ) ->
     Hand =
         [ begin
             case Tile of
@@ -64,26 +74,41 @@ handle_decoded([[{<<"request">>, <<"player_hand">>}],
             end
           end || Tile <- scrabble_game:get_player_hand(Pid, SPID)
         ],
-    jsx:encode([{player_hand, Hand}]);
-handle_decoded([[{<<"request">>, <<"game_board">>}],
-                [{<<"player_id">>, SPID}],
-                [{<<"gid">>, GID}],
-                [{<<"guid">>, GUID}]], Pid) ->
+    jsx:encode(#{ player_hand => Hand});
+handle_decoded(
+        #{
+            request := <<"game_board">>,
+            player_id := _SPID,
+            gid := GID,
+            guid := _GUID
+        },
+        Pid
+    ) ->
     {ok, GameBoard} = scrabble_game:get_board(Pid, GID),
-    jsx:encode([{response, [{game_board, GameBoard}]}]);
-handle_decoded([{<<"place_word">>, SPID},
-                {<<"gid">>, GID},
-                {<<"tiles">>, Tiles}], Pid) ->
-    % Tiles = [{<<"board_8_8">>,<<"r">>}],
-    %               [{<<"board_9_8">>,<<"u">>}],
-    %               [{<<"board_10_8">>,<<"a">>}],
-    %               [{<<"board_11_8">>,<<"n">>}]
-    ok = scrabble_game:place_word(Pid, SPID, Tiles),
-    jsx:encode([{response, refresh_board}]);
-handle_decoded([{<<"player_leave">>, SPID},
-                {<<"gid">>, GID}], Pid) ->
+    jsx:encode(#{ response => #{ game_board => GameBoard } });
+handle_decoded(
+        #{
+            place_word := SPID,
+            gid := _GID,
+            tiles := Tiles
+        },
+        Pid
+    ) ->
+    case scrabble_game:place_word(Pid, SPID, Tiles) of
+        ok ->
+            jsx:encode(#{ response => refresh_board });
+        {error, Reason} ->
+            jsx:encode(#{ error => Reason })
+    end;
+handle_decoded(
+        #{
+            player_leave := SPID,
+            gid := GID
+        },
+        Pid
+    ) ->
     ok = scrabble_game:player_leaves(Pid, SPID, GID),
-    jsx:encode([{'redirect', 'index.html'}]);
+    jsx:encode(#{ redirect => <<"index.html">>});
 handle_decoded(Json, _Pid) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).
