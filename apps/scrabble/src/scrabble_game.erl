@@ -92,40 +92,31 @@ get(K, Map) ->
 %% -------------------------------------------
 %% Gen Server
 
+%% TODO: take tiles when game starts...
+%%       but not as gs call
+% ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
 init(PlayerList) when is_list(PlayerList) ->
-
     Tiles = tile_distribution(),
-
-    % ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
-    % ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
-
     TileBag = shuffle_tiles(Tiles),
     Players = players_structs(PlayerList, []),
     GameBoard = scrabble_board:init_game_board(),
-
     InitialState = #{
         empty => true,
         tile_bag => TileBag,
         players => Players,
         board => GameBoard
     },
-
-    log({tilebag, TileBag}),
-    log({players, Players}),
-    log({board, GameBoard}),
-
+    %log({tilebag, TileBag}),
+    %log({players, Players}),
+    %log({board, GameBoard}),
     % check who starts first
-
     % then get players tiles
-
     {NewBag, UpdatedPlayers} =
         lists:foldl(fun({SPID, _PlayerMap}, {AccTileBag, AccPlayers}) ->
             take_x_from_bag_into_player_hand(SPID, 7, AccPlayers, AccTileBag)
         end, {TileBag, Players}, Players),
-
     % {NewBag, UpdatedPlayers} =
     %     take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
-
     %% TODO: simplify code in init/1 with player_take_x_tiles/3
     {ok, InitialState#{
         tile_bag => NewBag,
@@ -140,21 +131,21 @@ handle_call({player_take_x_tiles, SPID, Amount}, _From,
         tile_bag => NewBag,
         players => UpdatedPlayers
     }};
-handle_call({player_places_tile, SPID, Tile, X, Y}, _From,
-            #{ players := Players, board := Board } = State) ->
-    case find_tile_on_board(X, Y, Board) of
-        empty ->
-            % Update hand
-            {ok, PlayerMap} = get_player(SPID, Players),
-            UpdatedPlayerMap = take_tile_from_hand(PlayerMap, Tile),
-            UpdatedPlayers = update_player(SPID, UpdatedPlayerMap, Players),
-            {reply, true, State#{
-                players => UpdatedPlayers,
-                board => place_tile_on_board(X, Y, SPID, Tile, Board)
-            }};
-        not_empty ->
-            {reply, false, State}
-    end;
+% handle_call({player_places_tile, SPID, Tile, X, Y}, _From,
+%             #{ players := Players, board := Board } = State) ->
+%     case find_tile_on_board(X, Y, Board) of
+%         empty ->
+%             % Update hand
+%             {ok, PlayerMap} = get_player(SPID, Players),
+%             UpdatedPlayerMap = take_tile_from_hand(PlayerMap, Tile),
+%             UpdatedPlayers = update_players(SPID, UpdatedPlayerMap, Players),
+%             {reply, true, State#{
+%                 players => UpdatedPlayers,
+%                 board => place_tile_on_board(X, Y, SPID, Tile, Board)
+%             }};
+%         not_empty ->
+%             {reply, false, State}
+%     end;
 handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
     {ok, PlayerMap} = get_player(SPID, Players),
     PlayerHand = get(hand, PlayerMap),
@@ -177,25 +168,39 @@ handle_call({player_leaves, SPID, _GID}, _From,
 handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := true } = State) ->
     #{
         board := Board,
-        players := Players
+        players := Players,
+        tile_bag := TBag
     } = State,
-    % 10> scrabble_game [#{value => <<"a">>,x => 8,y => 8},
-    %                    #{value => <<"a">>,x => 8,y => 9},
-    %                    #{value => <<"a">>,x => 8,y => 10}]
+    log({submittedboard, SubmittedBoard}),
     case is_starting_cell_submitted(SubmittedBoard) of
         true ->
             case is_valid_word(SubmittedBoard) of
                 true ->
 
-                    % {ok, PlayerMap} = get_player(SPID, Players),
-                    % PlayerHand = get(hand, PlayerMap),
+                    UpdatedBoard =
+                        place_tiles_on_board(SubmittedBoard, Board),
 
-                    %% TODO: remove letters from player hand
-                    %% TODO: update player hand with missing letters from tilebag.
+                    {ok, PlayerMap} =
+                        get_player(SPID, Players),
 
-                    UpdatedBoard = place_tiles_on_board(SubmittedBoard, Board),
+                    {NewHand, PlayerMap2} =
+                        take_tiles_from_hand(PlayerMap, SubmittedBoard),
+                    log({new_hand, NewHand}),
+
+                    Players2 = update_players(SPID, PlayerMap2, Players),
+
+                    {NewBag, UpdatedPlayerMap2} =
+                        take_x_from_bag_into_player_hand(
+                            SPID,
+                            number_of_new_tiles_to_take(NewHand),
+                            Players2,
+                            TBag
+                        ),
+
                     {reply, ok, State#{
+                        tile_bag => NewBag,
                         board => UpdatedBoard,
+                        players => UpdatedPlayerMap2,
                         empty => false
                     }};
                 false ->
@@ -205,11 +210,14 @@ handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := true } = Stat
             {reply, {error, not_starting_square}, State}
     end;
 %% Consecutive words
-handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := false } = State) ->
+handle_call({place_word, _SPID, SubmittedBoard}, _From, #{ empty := false } = State) ->
     #{
         board := Board,
         players := _Players
     } = State,
+    % 10> scrabble_game [
+    %                    #{value => <<"a">>,x => 8,y => 9},
+    %                    #{value => <<"a">>,x => 8,y => 10}]
     %% NB:
 
     %% TODO: check SubmittedBoard valid
@@ -220,18 +228,10 @@ handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := false } = Sta
     %% TODO: place word on board
     %% TODO: remove letters from player hand
     %%       update player hand with missing letters from tilebag.
-
-
-
-        %% -> ( left-right, diag-down, diag-up, top-bottom )
-    %% are all the tiles next to one another ( word )
-    %% Is the submitted word a valid word ?
-
-    % io:format(" Board in STATE ~p \n\n Board submitted is ~p\n\n", [Board, SubmittedBoard]),
-
-    %% io:format("UpdatedBoard : ~p\n", [UpdatedBoard]),
+    UpdatedBoard = place_tiles_on_board(SubmittedBoard, Board),
     {reply, ok, State#{
-        % board => UpdatedBoard
+        board => UpdatedBoard,
+        empty => false
     }};
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
@@ -298,26 +298,6 @@ duplicate_tiles([{Type, Num} | T], R) when Num > 0 ->
         )
     ).
 
-letter_score('blank') ->
-    0;
-letter_score(L) when L == $e orelse L == $a orelse L == $i orelse L == $o
-                     orelse L == $n orelse L == $r orelse L == $t
-                     orelse L == $l orelse L == $s orelse L == $u ->
-    1;
-letter_score(L) when L == $d orelse L == $g ->
-    2;
-letter_score(L) when L == $b orelse L == $c orelse L == $m orelse L == $p ->
-    3;
-letter_score(L) when L == $f orelse L == $h orelse L == $v orelse L == $w
-                     orelse L == $y ->
-    4;
-letter_score(L) when L == $k ->
-    5;
-letter_score(L) when L == $j orelse L == $x ->
-    8;
-letter_score(L) when L == $q orelse L == $z ->
-    10.
-
 shuffle_tiles(Tiles) ->
     shuffle_tiles(Tiles, []).
 
@@ -365,15 +345,18 @@ get_player(SPID, Players) ->
 remove_player(SPID, Players) ->
     {ok, lists:keydelete(SPID, 1, Players)}.
 
+%% TODO: encapsulate the amount to take.
+%%       make sure that tiles that're placed on the board
+%%       are removed before calling this function.
 take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag) ->
     log({take, Amount, tiles, players, Players}),
     {ok, #{ hand := ExistingHand } = PlayerMap} = get_player(SPID, Players),
     case erlang:abs(?HAND_SIZE - length(ExistingHand)) of
         Amount -> % Pattern Match on Amount requested
-            {ToTake, Rest} = lists:split(Amount, TBag),
+            {ToTake, NewBag} = lists:split(Amount, TBag),
             {
-                Rest,
-                update_player(SPID, PlayerMap#{ hand => ToTake ++ ExistingHand }, Players)
+                NewBag,
+                update_players(SPID, PlayerMap#{ hand => ToTake ++ ExistingHand }, Players)
             };
         % TODO: Should we crash, alert, trying to take more
         % than allowed in hand (7)
@@ -385,34 +368,43 @@ take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag) ->
             }
     end.
 
-update_player(SPID, PlayerMap, Players) ->
+update_players(SPID, PlayerMap, Players) ->
     lists:keyreplace(SPID, 1, Players, {SPID, PlayerMap}).
 
-find_tile_on_board(X, Y, Board) ->
-    case {lists:keyfind(X, 1, Board), lists:keyfind(Y, 2, Board)} of
-        {false, false} ->
-            empty;
-        {{X, Y, SPID, Tile}, {X, Y, SPID, Tile}} ->
-            not_empty
-    end.
+% find_tile_on_board(X, Y, Board) ->
+%     case {lists:keyfind(X, 1, Board), lists:keyfind(Y, 2, Board)} of
+%         {false, false} ->
+%             empty;
+%         {{X, Y, SPID, Tile}, {X, Y, SPID, Tile}} ->
+%             not_empty
+%     end.
 
-place_tile_on_board(X, Y, SPID, Tile, Board) ->
-    [{X, Y, SPID, Tile}|Board].
+% place_tile_on_board(X, Y, SPID, Tile, Board) ->
+%     [{X, Y, SPID, Tile}|Board].
 
-take_tile_from_hand(#{ hand := Hand } = Map, Tile) ->
-    NewHand = Hand -- [Tile],
-    Map#{ hand => NewHand }.
+take_tiles_from_hand(#{ hand := Hand } = Player, SubmittedBoard) ->
+    NewHand =
+        lists:foldl(
+            fun(SubmitLetter, HandAcc) ->
+                #{ value := LetterValue } = SubmitLetter,
+                log({subtract, HandAcc, [LetterValue]}),
+                HandAcc -- [LetterValue]
+            end,
+            Hand,
+            SubmittedBoard
+        ),
+    {
+        NewHand,
+        Player#{ hand => NewHand }
+    }.
 
 log(X) ->
     io:format("~p ~p~n", [?MODULE, X]).
 
 is_starting_cell_submitted(SubmittedBoard) ->
-    % 10> scrabble_game [#{value => <<"a">>,x => 8,y => 8},
-    %                    #{value => <<"a">>,x => 8,y => 9},
-    %                    #{value => <<"a">>,x => 8,y => 10}]
     lists:any(
         fun
-        (#{ x := 8, y := 8 }) ->
+        (#{ y := 8, x := 8 }) ->
             true;
         (_) ->
             false
@@ -433,13 +425,13 @@ place_tiles_on_board(SubmittedBoard, Board) ->
                 y := Y,
                 value := LetterValue
             } = SubmitLetter,
-            BoardRow = maps:get(X, BoardAcc),
-            BoardCell = maps:get(Y, BoardRow),
+            BoardRow = maps:get(Y, BoardAcc),
+            BoardCell = maps:get(X, BoardRow),
             case BoardCell of
                 ?BOARD_TILE_UNSET ->
                     BoardAcc#{
-                        X => BoardRow#{
-                            Y => LetterValue
+                        Y => BoardRow#{
+                            X => LetterValue
                         }
                     };
                 ExistingVal ->
@@ -449,3 +441,6 @@ place_tiles_on_board(SubmittedBoard, Board) ->
         Board,
         SubmittedBoard
     ).
+
+number_of_new_tiles_to_take(ExistingHandAfterSubmitted) ->
+    ?HAND_SIZE - length(ExistingHandAfterSubmitted).

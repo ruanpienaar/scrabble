@@ -221,18 +221,18 @@ $(document).ready(function(){
 
     function get_word_placement_tiles(){
         var board_struct = new Array ();
-        for (var board_x = 1; board_x <= 15; board_x++){
+        for (var board_y = 1; board_y <= 15; board_y++){
             var y_array = new Array ();
-            for (var board_y = 1; board_y <= 15; board_y++){
-                cell = '#board_' + board_x + '_' + board_y;
+            for (var board_x = 1; board_x <= 15; board_x++){
+                cell = '#board_' + board_y + '_' + board_x;
                 val = $(cell).val();
                 console.log("NOT DISABLED " + !$(cell).attr("disabled"));
                 notDisabled = !$(cell).attr("disabled");
                 if ( val != "" && notDisabled ) {
                     console.log(cell + ' - ' + val);
                     board_struct.push({
-                        x: board_x,
                         y: board_y,
+                        x: board_x,
                         value: val
                     })
                 }
@@ -380,18 +380,18 @@ $(document).ready(function(){
 
         // 'board_X_Y'
 
-        for (var board_x = 1; board_x <= 15; board_x++){
+        for (var board_y = 1; board_y <= 15; board_y++){
             matrix += '<tr>';
-            for (var board_y = 1; board_y <= 15; board_y++){
-                //backend_matrix_tile = 'board_'+ board_x + '_' + board_y;
+            for (var board_x = 1; board_x <= 15; board_x++){
+                //backend_matrix_tile = 'board_'+ board_y + '_' + board_x;
                 var cell_val = '';
-                if(backend_matrix[board_x][board_y] != ""){
-                    //console.log(board_x + '_' + board_y + backend_matrix[board_x][board_y]);
-                    cell_val = 'value=\"' + backend_matrix[board_x][board_y] + '\" disabled=\"disabled\" ';
+                if(backend_matrix[board_y][board_x] != ""){
+                    //console.log(board_y + '_' + board_x + backend_matrix[board_y][board_x]);
+                    cell_val = 'value=\"' + backend_matrix[board_y][board_x] + '\" disabled=\"disabled\" ';
                 }
                 matrix += '<td>';
-                input_name = 'board_'+board_x+'_'+board_y;
-                if ( board_x == 8 && board_y == 8) {
+                input_name = 'board_'+board_y+'_'+board_x;
+                if ( board_y == 8 && board_x == 8) {
                     matrix += '<input '+cell_val+' style="background: red;" type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';
                 } else {
                     matrix += '<input '+cell_val+' type"text" id="'+input_name+'" size="1" maxlength="1" onchange="check(this.id);" onkeydown="back_into_hand(this.id, this.value);" onkeyup="check_matrix_input(this.id, this.value);" />';

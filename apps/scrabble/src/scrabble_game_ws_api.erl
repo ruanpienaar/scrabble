@@ -1,3 +1,6 @@
+%% TODO: write a converstion function ( BE -> FE & FE -> BE )
+%%       FE: <<"a">>, <<"b">>. BE: [97], [98].
+
 -module(scrabble_game_ws_api).
 
 -export([
@@ -85,7 +88,25 @@ handle_decoded(
         Pid
     ) ->
     {ok, GameBoard} = scrabble_game:get_board(Pid, GID),
-    jsx:encode(#{ response => #{ game_board => GameBoard } });
+    %% THis is some shitty code???
+    GameBoardFE = maps:map(
+        fun(_Y, YV) ->
+            maps:map(
+                fun(_X, XV) ->
+                    case XV == <<>> of
+                        true ->
+                            <<>>;
+                        false ->
+                            list_to_binary([XV])
+                    end
+                end,
+                YV
+            )
+        end,
+        GameBoard
+    ),
+    io:format("GameBoardFE ~p\n", [GameBoardFE]),
+    jsx:encode(#{ response => #{ game_board => GameBoardFE } });
 handle_decoded(
         #{
             place_word := SPID,
@@ -94,7 +115,8 @@ handle_decoded(
         },
         Pid
     ) ->
-    case scrabble_game:place_word(Pid, SPID, Tiles) of
+    io:format("Tiles: ~p\n", [Tiles]),
+    case scrabble_game:place_word(Pid, SPID, backend_tile_format(Tiles)) of
         ok ->
             jsx:encode(#{ response => refresh_board });
         {error, Reason} ->
@@ -112,3 +134,12 @@ handle_decoded(
 handle_decoded(Json, _Pid) ->
     io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).
+
+backend_tile_format(Tiles) ->
+    lists:map(
+        fun(#{ value := Value } = Tile) ->
+            [Char] = binary_to_list(Value),
+            Tile#{ value => Char }
+        end,
+        Tiles
+    ).
