@@ -517,10 +517,16 @@ get_game_details() ->
     ).
 
 place_word() ->
-    {ok, #{ board := Board } = State} = scrabble_game:init([
+    {ok, #{
+        board := Board,
+        tile_bag := TBag
+    } = State} = scrabble_game:init([
         <<"playerid1">>
     ]),
-
+    ?assertEqual(
+        93,
+        length(TBag)
+    ),
     PlayerInfo = scrabble_game:handle_call({get_player_info, <<"playerid1">>}, from, State),
     ?assertMatch(
         {
@@ -604,7 +610,10 @@ place_word() ->
         SucessPlacedWord
     ),
     {reply, ok, NewState} = SucessPlacedWord,
-    #{ board := NewBoard } = NewState,
+    #{
+        board := NewBoard,
+        tile_bag := NewTileBag
+    } = NewState,
     ?assert(maps:get(8, maps:get(8, NewBoard)) /= undefined ),
     ?assert(maps:get(9, maps:get(8, NewBoard)) /= undefined ),
     ?assert(maps:get(10, maps:get(8, NewBoard)) /= undefined ),
@@ -612,6 +621,10 @@ place_word() ->
     ?assert(maps:get(12, maps:get(8, NewBoard)) /= undefined ),
     ?assert(maps:get(13, maps:get(8, NewBoard)) /= undefined ),
     ?assert(maps:get(14, maps:get(8, NewBoard)) /= undefined ),
+    ?assertEqual(
+        86,
+        length(NewTileBag)
+    ),
     ok.
 
 
