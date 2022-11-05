@@ -114,7 +114,7 @@ get_player_info(Pid, SPID) ->
 % ok = scrabble_game:player_take_x_tiles(Pid, 1, ?HAND_SIZE),
 -spec init(scrabble:player_id_list()) -> scrabble:scrabble_game_gs_data().
 init(PlayerIds) when is_list(PlayerIds) ->
-    Tiles = tile_distribution(),
+    Tiles = scrabble_board:tile_distribution(),
     TileBag = shuffle_tiles(Tiles),
     PlayersStructs = players_structs(PlayerIds),
     GameBoard = scrabble_board:init_game_board(),
@@ -224,13 +224,21 @@ handle_call({place_word, SPID, ProposedWord}, _From, #{ board_empty := true } = 
                         true ->
                             case is_valid_word(ProposedWord) of
                                 true ->
+
                                     UpdatedBoard =
                                         place_tiles_on_board(ProposedWord, Board),
 
-                                    {NewHand, PlayerMap2} =
+                                    {NewHand, #{ score := CurrentPlayerScore } = PlayerMap2} =
                                         take_tiles_from_hand(PlayerMap, ProposedWord),
+
+                                    NewPlayerScore =
+                                        CurrentPlayerScore +
+                                        scrabble_score:word_score(Board, ProposedWord),
+
+                                    PlayerMap3 = PlayerMap2#{ score => NewPlayerScore },
+
                                     log({new_hand, NewHand}),
-                                    PlayersStruct2 = update_players(SPID, PlayerMap2, PlayersStruct),
+                                    PlayersStruct2 = update_players(SPID, PlayerMap3, PlayersStruct),
 
                                     {NewBag, UpdatedPlayerMap2} =
                                         take_x_from_bag_into_player_hand(
@@ -330,52 +338,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% -------------------------------------------
 %% Internal
 
-
-
-tile_distribution() ->
-    duplicate_tiles(
-        [{'blank', 2},
-         {$e, 12},
-         {$a, 9},
-         {$i, 9},
-         {$o, 8},
-         {$n, 6},
-         {$r, 6},
-         {$t, 6},
-         {$l, 4},
-         {$s, 4},
-         {$u, 4},
-         {$d, 4},
-         {$g, 3},
-         {$b, 2},
-         {$c, 2},
-         {$m, 2},
-         {$p, 2},
-         {$f, 2},
-         {$h, 2},
-         {$v, 2},
-         {$w, 2},
-         {$y, 2},
-         {$k, 1},
-         {$j, 1},
-         {$x, 1},
-         {$q, 1},
-         {$z, 1}],
-        []
-    ).
-
-% No need to reverse, we will shuffle.
-duplicate_tiles([], R) ->
-    R;
-duplicate_tiles([{Type, Num} | T], R) when Num > 0 ->
-    duplicate_tiles(
-        T,
-        lists:foldl(
-            fun(I, A) ->
-                [I | A]
-            end, R, [ Type || _X <- lists:seq(1, Num) ]
-        )
-    ).
 
 shuffle_tiles(Tiles) ->
     shuffle_tiles(Tiles, []).

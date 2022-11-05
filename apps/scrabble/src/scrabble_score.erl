@@ -156,18 +156,21 @@ word_score(Board, Word) ->
     LettersScored = lists:foldl(
         fun(#{ x := X, y := Y, value := V } = Letter, Score) ->
             LetterScore = letter_score(V),
-            Score +
+            LetterMultiplied =
                 case multiplier_tiles(X, Y) of
                     #{ type := letter, multiplier := M } ->
                         %% TODO: check board if tile-multiplier has been scared yet?
                         LetterScore * M;
                     _ ->
                         LetterScore
-                end
+                end,
+            io:format("score letter ~p : ~p\n", [[V], LetterMultiplied]),
+            Score + LetterMultiplied
         end,
         0,
         Word
     ),
+    io:format("Letters scored ~p\n", [LettersScored]),
     WordScored = lists:foldl(
         fun(#{ x := X, y := Y, value := Value }, Score) ->
             case multiplier_tiles(X, Y) of
@@ -181,6 +184,7 @@ word_score(Board, Word) ->
         LettersScored,
         Word
     ),
+    io:format("WordScored ~p\n", [WordScored]),
     case length(Word) == ?HAND_SIZE of
         true ->
             WordScored + 50;

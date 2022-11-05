@@ -548,7 +548,7 @@ place_word() ->
             #{
                 board := Board,
                 board_empty := true,
-                players := #{ <<"playerid1">> := #{ hand := Hand }}
+                players := #{ <<"playerid1">> := #{ hand := Hand, score := 0 }}
             }
         },
         scrabble_game:handle_call({place_word, <<"xxxx">>, [#{ x => 8, y => 8, value => $x }]}, from, State)
@@ -560,7 +560,7 @@ place_word() ->
             #{
                 board := Board,
                 board_empty := true,
-                players := #{ <<"playerid1">> := #{ hand := Hand }}
+                players := #{ <<"playerid1">> := #{ hand := Hand, score := 0 }}
             }
         },
         scrabble_game:handle_call({place_word, <<"playerid1">>, [#{ x => 1, y => 1, value => NotInHandLetter }]}, from, State)
@@ -572,7 +572,7 @@ place_word() ->
             #{
                 board := Board,
                 board_empty := true,
-                players := #{ <<"playerid1">> := #{ hand := Hand }}
+                players := #{ <<"playerid1">> := #{ hand := Hand, score := 0 }}
             }
         },
         scrabble_game:handle_call({place_word, <<"playerid1">>, [#{ x => 1, y => 1, value => FirstLetterInHand }]}, from, State)
@@ -581,9 +581,6 @@ place_word() ->
         {
             place_word,
             <<"playerid1">>,
-            % [
-            %     #{ x => 8, y => 8, value => FirstLetterInHand }
-            % ]
             element(1,
                 lists:foldl(
                     fun(HandLetter, {Acc, Pos}) ->
@@ -604,9 +601,10 @@ place_word() ->
             #{
                 board := _,
                 board_empty := false,
-                players := #{ <<"playerid1">> := #{ hand := NewHand }}
+                players := #{ <<"playerid1">> := #{ hand := NewHand, score := NewScore }}
             }
-        } when NewHand /= Hand,
+        } when NewHand /= Hand andalso
+               NewScore /= 0,
         SucessPlacedWord
     ),
     {reply, ok, NewState} = SucessPlacedWord,
