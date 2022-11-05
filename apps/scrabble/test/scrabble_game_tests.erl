@@ -527,7 +527,11 @@ place_word() ->
         93,
         length(TBag)
     ),
-    PlayerInfo = scrabble_game:handle_call({get_player_info, <<"playerid1">>}, from, State),
+    PlayerInfo = scrabble_game:handle_call(
+        {get_player_info, <<"playerid1">>},
+        from,
+        State
+    ),
     ?assertMatch(
         {
             reply,
@@ -537,10 +541,7 @@ place_word() ->
         PlayerInfo
     ),
     {reply, #{ hand := Hand }, _} = PlayerInfo,
-    FirstLetterInHand = hd(Hand),
-    ?debugFmt("First letter in hand ~p", [FirstLetterInHand]),
-    NotInHandLetter = hd(find_letter_thats_not_in_hand(Hand)),
-    ?debugFmt("Letter ~p not in hand (~p).", [NotInHandLetter, Hand]),
+    %% Bad player id
     ?assertMatch(
         {
             reply,
@@ -553,6 +554,9 @@ place_word() ->
         },
         scrabble_game:handle_call({place_word, <<"xxxx">>, [#{ x => 8, y => 8, value => $x }]}, from, State)
     ),
+    NotInHandLetter = hd(find_letter_thats_not_in_hand(Hand)),
+    ?debugFmt("Letter ~p not in hand (~p).", [NotInHandLetter, Hand]),
+    %% Letters not from hand!
     ?assertMatch(
         {
             reply,
@@ -565,6 +569,9 @@ place_word() ->
         },
         scrabble_game:handle_call({place_word, <<"playerid1">>, [#{ x => 1, y => 1, value => NotInHandLetter }]}, from, State)
     ),
+    FirstLetterInHand = hd(Hand),
+    ?debugFmt("First letter in hand ~p", [FirstLetterInHand]),
+    %% Starting position incorrect
     ?assertMatch(
         {
             reply,
@@ -577,7 +584,7 @@ place_word() ->
         },
         scrabble_game:handle_call({place_word, <<"playerid1">>, [#{ x => 1, y => 1, value => FirstLetterInHand }]}, from, State)
     ),
-    SucessPlacedWord = scrabble_game:handle_call(
+    SucessPlacedWord1 = scrabble_game:handle_call(
         {
             place_word,
             <<"playerid1">>,
@@ -601,28 +608,82 @@ place_word() ->
             #{
                 board := _,
                 board_empty := false,
-                players := #{ <<"playerid1">> := #{ hand := NewHand, score := NewScore }}
+                players := #{ <<"playerid1">> := #{ hand := Hand2, score := Score2 }}
             }
-        } when NewHand /= Hand andalso
-               NewScore /= 0,
-        SucessPlacedWord
+        } when Hand2 /= Hand andalso
+               Score2 /= 0,
+        SucessPlacedWord1
     ),
-    {reply, ok, NewState} = SucessPlacedWord,
+    {reply, ok, State2} = SucessPlacedWord1,
     #{
-        board := NewBoard,
-        tile_bag := NewTileBag
-    } = NewState,
-    ?assert(maps:get(8, maps:get(8, NewBoard)) /= undefined ),
-    ?assert(maps:get(9, maps:get(8, NewBoard)) /= undefined ),
-    ?assert(maps:get(10, maps:get(8, NewBoard)) /= undefined ),
-    ?assert(maps:get(11, maps:get(8, NewBoard)) /= undefined ),
-    ?assert(maps:get(12, maps:get(8, NewBoard)) /= undefined ),
-    ?assert(maps:get(13, maps:get(8, NewBoard)) /= undefined ),
-    ?assert(maps:get(14, maps:get(8, NewBoard)) /= undefined ),
+        board_empty := false,
+        board := Board2,
+        tile_bag := TileBag2,
+        players := #{
+            <<"playerid1">> := #{
+                hand := Hand2
+            }
+        }
+    } = State2,
+    ?assert(maps:get(8, maps:get(8, Board2)) /= undefined ),
+    ?assert(maps:get(9, maps:get(8, Board2)) /= undefined ),
+    ?assert(maps:get(10, maps:get(8, Board2)) /= undefined ),
+    ?assert(maps:get(11, maps:get(8, Board2)) /= undefined ),
+    ?assert(maps:get(12, maps:get(8, Board2)) /= undefined ),
+    ?assert(maps:get(13, maps:get(8, Board2)) /= undefined ),
+    ?assert(maps:get(14, maps:get(8, Board2)) /= undefined ),
     ?assertEqual(
         86,
-        length(NewTileBag)
+        length(TileBag2)
     ),
+
+    %% Place adjacent word!
+    %% intersect at x=11 y8
+    SucessPlacedWord2 = scrabble_game:handle_call(
+        {
+            place_word,
+            <<"playerid1">>,
+            element(1,
+                lists:foldl(
+                    fun(HandLetter, {Acc, Pos}) ->
+                        case Pos =:= 8 of
+                            true ->
+                                {Acc, Pos+1};
+                            false ->
+                                {lists:append(Acc, [#{ x => 11, y => Pos, value => HandLetter }]), Pos+1}
+                        end
+                    end,
+                    {[], 4},
+                    Hand2
+                )
+            )
+        },
+        from,
+        State2
+    ),
+    {reply, ok, State3} = SucessPlacedWord2,
+    #{
+        board_empty := false,
+        board := Board3,
+        tile_bag := TileBag3,
+        players := #{
+            <<"playerid1">> := #{
+                hand := Hand3
+            }
+        }
+    } = State3,
+    ?assert(maps:get(11, maps:get(4, Board3)) /= undefined ),
+    ?assert(maps:get(11, maps:get(5, Board3)) /= undefined ),
+    ?assert(maps:get(11, maps:get(6, Board3)) /= undefined ),
+    ?assert(maps:get(11, maps:get(7, Board3)) /= undefined ),
+    ?assert(maps:get(11, maps:get(8, Board3)) /= undefined ),
+    ?assert(maps:get(11, maps:get(9, Board3)) /= undefined ),
+    ?assert(maps:get(11, maps:get(10, Board3)) /= undefined ),
+    ?assertEqual(
+        80,
+        length(TileBag3)
+    ),
+
     ok.
 
 

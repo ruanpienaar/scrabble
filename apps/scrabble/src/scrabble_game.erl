@@ -22,7 +22,7 @@
 
 -ifdef(TEST).
 -export([
-    get_player_info/2
+%     get_player_info/2
 %     tile_distribution/0,
 %     duplicate_tiles/2,
 %     % letter_score/1,
@@ -93,8 +93,8 @@ place_word(Pid, SPID, ProposedWord) ->
 print_board(Pid) ->
     gen_server:call(Pid, {?FUNCTION_NAME}).
 
-get_player_info(Pid, SPID) ->
-    gen_server:call(Pid, {?FUNCTION_NAME, SPID}).
+% get_player_info(Pid, SPID) ->
+%     gen_server:call(Pid, {?FUNCTION_NAME, SPID}).
 
 % -----------------
 % Data API
@@ -205,13 +205,14 @@ handle_call({get_game_details}, _From, State) ->
 %         players => UpdatedPlayers
 %     }};
 %% First word!
-handle_call({place_word, SPID, ProposedWord}, _From, #{ board_empty := true } = State) ->
+handle_call({place_word, SPID, ProposedWord}, _From, State) ->
     #{
+        board_empty := BE,
         board := Board,
         players := PlayersStruct,
         tile_bag := TBag
     } = State,
-    %% TODO: how we can we protect nicer than checking each time ?
+    %% TODO: how do we simplify player checking?
     %%       create player statem ?
     case maps:get(SPID, PlayersStruct, undefined) of
         undefined ->
@@ -220,26 +221,20 @@ handle_call({place_word, SPID, ProposedWord}, _From, #{ board_empty := true } = 
             log({submittedboard, ProposedWord}),
             case is_proposed_word_in_hand(ProposedWord, PlayerMap) of
                 true ->
-                    case is_starting_cell_submitted(ProposedWord) of
+                    case valid_placement(Board, BE, ProposedWord) of
                         true ->
                             case is_valid_word(ProposedWord) of
                                 true ->
-
                                     UpdatedBoard =
                                         place_tiles_on_board(ProposedWord, Board),
-
                                     {NewHand, #{ score := CurrentPlayerScore } = PlayerMap2} =
                                         take_tiles_from_hand(PlayerMap, ProposedWord),
-
                                     NewPlayerScore =
                                         CurrentPlayerScore +
                                         scrabble_score:word_score(Board, ProposedWord),
-
                                     PlayerMap3 = PlayerMap2#{ score => NewPlayerScore },
-
                                     log({new_hand, NewHand}),
                                     PlayersStruct2 = update_players(SPID, PlayerMap3, PlayersStruct),
-
                                     {NewBag, UpdatedPlayerMap2} =
                                         take_x_from_bag_into_player_hand(
                                             SPID,
@@ -263,34 +258,11 @@ handle_call({place_word, SPID, ProposedWord}, _From, #{ board_empty := true } = 
                     {reply, {error, proposed_word_not_in_hand}, State}
             end
     end;
-%% Consecutive words
-handle_call({place_word, _SPID, ProposedWord}, _From, #{ board_empty := false } = State) ->
-    #{
-        board := Board,
-        players := _Players
-    } = State,
-    % 10> scrabble_game [
-    %                    #{value => <<"a">>,x => 8,y => 9},
-    %                    #{value => <<"a">>,x => 8,y => 10}]
-    %% NB:
-
-    %% TODO: check ProposedWord valid
-    %% TODO: get adjacent tiles connected to ProposedWord from Board.
-    %%       Are they adjacent to any other tiles? No -> return error
-    %% TODO: merge adjacent + SubmitBoard into FullWord.
-    %%       Is valid word? No -> Error invalid word
-    %% TODO: place word on board
-    %% TODO: remove letters from player hand
-    %%       update player hand with missing letters from tilebag.
-    UpdatedBoard = place_tiles_on_board(ProposedWord, Board),
-    {reply, ok, State#{
-        board => UpdatedBoard
-    }};
 handle_call({print_board}, _From, #{ empty_board := true } = State) ->
     {reply, empty_board, State};
 handle_call({print_board}, _From, #{ board := Board } = State) ->
     io:format("\t ", []),
-    [ io:format("~p   ", [X-1]) || X <- lists:seq(1, 16) ],
+    [ io:format("~p    ", [X]) || X <- lists:seq(1, 16) ],
     io:format("\n", []),
     maps:foreach(
         fun(YK, YV) ->
@@ -300,7 +272,7 @@ handle_call({print_board}, _From, #{ board := Board } = State) ->
                     io:format(" ~p ", [
                         case XV of
                             undefined ->
-                                "";
+                                " ";
                             _ ->
                                 [XV]
                         end
@@ -461,7 +433,14 @@ is_proposed_word_in_hand(ProposedWord, #{ hand := Hand }) ->
         ProposedWord
     ).
 
-is_starting_cell_submitted(ProposedWord) ->
+valid_placement(_Board, _BoardEmpty=false, _ProposedWord) ->
+
+
+
+    %% TODO: check if connected to other word?
+    true;
+valid_placement(_Board, _BoardEmpty=true, ProposedWord) ->
+    %% Any tile over starting position
     lists:any(
         fun
         (#{ y := 8, x := 8, value := V }) when V /= [] ->
@@ -472,7 +451,7 @@ is_starting_cell_submitted(ProposedWord) ->
         ProposedWord
     ).
 
-is_valid_word(ProposedWord) ->
+is_valid_word(_ProposedWord) ->
     %% TODO: is_valid_letter
     %% TODO: check dictionary API
     %is_all_letters(ProposedWord).

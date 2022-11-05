@@ -3,7 +3,8 @@
 -include("scrabble.hrl").
 
 -export([
-    init_game_board/0
+    init_game_board/0,
+    tile_distribution/0
 ]).
 
 -spec init_game_board() -> scrabble:board().
