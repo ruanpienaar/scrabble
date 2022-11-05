@@ -23,4 +23,4 @@
 -define(EMERGENCY(Msg, Args),lager:emergency(Msg, Args)).
 
 
--define(BOARD_TILE_UNSET, <<>>).
+-define(BOARD_TILE_UNSET, undefined).

@@ -10,26 +10,28 @@
 -export([
     name/1,
     start_link/2,
-    player_start/2,
-    player_take_x_tiles/3,
-    player_places_tile/5,
-    get_player_hand/2,
-    get_board/2,
-    player_leaves/3,
-    place_word/3
+    % player_start/2,
+    %player_take_x_tiles/3,
+    %player_places_tile/5,
+    get_game_details/1,
+    %get_board/2,
+    %player_leaves/3
+    place_word/3,
+    print_board/1
 ]).
 
 -ifdef(TEST).
 -export([
-    tile_distribution/0,
-    duplicate_tiles/2,
-    letter_score/1,
-    shuffle_tiles/1,
-    shuffle_tiles/2,
-    take_random_tile/1,
-    players_structs/2,
-    players_struct/1,
-    take_x_from_bag_into_player_hand/4
+    get_player_info/2
+%     tile_distribution/0,
+%     duplicate_tiles/2,
+%     % letter_score/1,
+%     shuffle_tiles/1,
+%     shuffle_tiles/2,
+%     take_random_tile/1,
+%     players_structs/2,
+%     players_struct/1,
+%     take_x_from_bag_into_player_hand/4
 ]).
 -endif.
 
@@ -48,6 +50,16 @@
 %% -------------------------------------------
 %% Api
 
+%% Possible PLAYER actions:
+%% - start game
+%% - player places word
+%% - PRINT board to shell
+%%   - player joins
+%%   - player leaves game
+%% Possible SYSTEM actions:
+%% - get game details ( players, boards, scores )
+
+
 % scrabble_game_1, scrabble_game_2, scrabble_game_3
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
@@ -58,33 +70,40 @@ start_link(GID, PlayerList)
              length(PlayerList) =< 4 ->
     gen_server:start_link({local, name(GID)}, ?MODULE, PlayerList, []).
 
-player_start(Pid, SPID) ->
-    player_take_x_tiles(Pid, SPID, ?HAND_SIZE).
+% player_start(Pid, SPID) ->
+%     player_take_x_tiles(Pid, SPID, ?HAND_SIZE).
 
-player_take_x_tiles(Pid, SPID, Amount) when Amount >= 1 andalso Amount =< 7 ->
-    gen_server:call(Pid, {player_take_x_tiles, SPID, Amount}).
+% player_take_x_tiles(Pid, SPID, Amount) when Amount >= 1 andalso Amount =< ?HAND_SIZE ->
+%     gen_server:call(Pid, {player_take_x_tiles, SPID, Amount}).
 
-player_places_tile(Pid, SPID, Tile, X, Y) ->
-    gen_server:call(Pid, {player_places_tile, SPID, Tile, X, Y}).
+% player_places_tile(Pid, SPID, Tile, X, Y) ->
+%     gen_server:call(Pid, {player_places_tile, SPID, Tile, X, Y}).
 
-get_player_hand(Pid, SPID) ->
-    gen_server:call(Pid, {get_player_hand, SPID}).
+get_game_details(Pid) ->
+    gen_server:call(Pid, {?FUNCTION_NAME}).
 
-get_board(Pid, SPID) ->
-    gen_server:call(Pid, {get_board, SPID}).
+% get_board(Pid, SPID) ->
+%     gen_server:call(Pid, {get_board, SPID}).
 
-player_leaves(Pid, SPID, GID) ->
-    gen_server:call(Pid, {player_leaves, SPID, GID}).
+% player_leaves(Pid, SPID, GID) ->
+%     gen_server:call(Pid, {player_leaves, SPID, GID}).
 
-place_word(Pid, SPID, Tiles) ->
-    gen_server:call(Pid, {?FUNCTION_NAME, SPID, Tiles}).
+-spec place_word(pid(), scrabble:player_id(), scrabble:word()) -> ok.
+place_word(Pid, SPID, ProposedWord) ->
+    gen_server:call(Pid, {?FUNCTION_NAME, SPID, ProposedWord}).
+
+print_board(Pid) ->
+    gen_server:call(Pid, {?FUNCTION_NAME}).
+
+get_player_info(Pid, SPID) ->
+    gen_server:call(Pid, {?FUNCTION_NAME, SPID}).
 
 % -----------------
 % Data API
 
-get(K, Map) ->
-    #{ K := V } = Map,
-    V.
+% get(K, Map) ->
+%     #{ K := V } = Map,
+%     V.
 
 % set(K, V, Map) ->
 %     Map#{ K => V }.
@@ -94,27 +113,36 @@ get(K, Map) ->
 
 %% TODO: take tiles when game starts...
 %%       but not as gs call
-% ok = scrabble_game:player_take_x_tiles(Pid, 1, 7),
-init(PlayerList) when is_list(PlayerList) ->
+% ok = scrabble_game:player_take_x_tiles(Pid, 1, ?HAND_SIZE),
+-spec init(scrabble:player_id_list()) -> scrabble:scrabble_game_gs_data().
+init(PlayerIds) when is_list(PlayerIds) ->
     Tiles = tile_distribution(),
     TileBag = shuffle_tiles(Tiles),
-    Players = players_structs(PlayerList, []),
+    PlayersStructs = players_structs(PlayerIds),
     GameBoard = scrabble_board:init_game_board(),
-    InitialState = #{
-        empty => true,
+    InitialState = (initial_state_data())#{
         tile_bag => TileBag,
-        players => Players,
+        players => PlayersStructs,
         board => GameBoard
     },
-    %log({tilebag, TileBag}),
-    %log({players, Players}),
-    %log({board, GameBoard}),
+    % log({tilebag, TileBag}),
+    % log({players, PlayersStructs}),
+    % log({board, GameBoard}),
     % check who starts first
     % then get players tiles
     {NewBag, UpdatedPlayers} =
-        lists:foldl(fun({SPID, _PlayerMap}, {AccTileBag, AccPlayers}) ->
-            take_x_from_bag_into_player_hand(SPID, 7, AccPlayers, AccTileBag)
-        end, {TileBag, Players}, Players),
+        lists:foldl(
+            fun(SPID, {AccTileBag, AccPlayers}) ->
+                take_x_from_bag_into_player_hand(
+                    SPID,
+                    ?HAND_SIZE,
+                    AccPlayers,
+                    AccTileBag
+                )
+            end,
+            {TileBag, PlayersStructs},
+            PlayerIds
+        ),
     % {NewBag, UpdatedPlayers} =
     %     take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
     %% TODO: simplify code in init/1 with player_take_x_tiles/3
@@ -123,14 +151,22 @@ init(PlayerList) when is_list(PlayerList) ->
         players => UpdatedPlayers
     }}.
 
-handle_call({player_take_x_tiles, SPID, Amount}, _From,
-            #{ players := Players, tile_bag := TBag } = State) ->
-    {NewBag, UpdatedPlayers} =
-        take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
-    {reply, ok, State#{
-        tile_bag => NewBag,
-        players => UpdatedPlayers
-    }};
+initial_state_data() ->
+    #{
+        tile_bag => [],
+        players => [],
+        board => #{},
+        board_empty => true
+    }.
+
+% handle_call({player_take_x_tiles, SPID, Amount}, _From,
+%             #{ players := Players, tile_bag := TBag } = State) ->
+%     {NewBag, UpdatedPlayers} =
+%         take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
+%     {reply, ok, State#{
+%         tile_bag => NewBag,
+%         players => UpdatedPlayers
+%     }};
 % handle_call({player_places_tile, SPID, Tile, X, Y}, _From,
 %             #{ players := Players, board := Board } = State) ->
 %     case find_tile_on_board(X, Y, Board) of
@@ -146,71 +182,83 @@ handle_call({player_take_x_tiles, SPID, Amount}, _From,
 %         not_empty ->
 %             {reply, false, State}
 %     end;
-handle_call({get_player_hand, SPID}, _From, #{ players := Players } = State) ->
-    {ok, PlayerMap} = get_player(SPID, Players),
-    PlayerHand = get(hand, PlayerMap),
-    {reply, PlayerHand, State};
-handle_call({get_board, _SPID}, _From,
-        #{ board := Board } = State) ->
-    {reply, {ok, Board}, State};
-handle_call({player_leaves, SPID, _GID}, _From,
-        #{ players := Players } = State) ->
-    log({player, SPID, leaves}),
-    log({all_players, Players}),
-    {ok, UpdatedPlayers} = remove_player(SPID, Players),
-    % Check if last player left...
-    log({updated_players, UpdatedPlayers}),
-    {reply, ok, State#{
-        players => UpdatedPlayers
-    }};
-
-%% First word!
-handle_call({place_word, SPID, SubmittedBoard}, _From, #{ empty := true } = State) ->
+handle_call({get_game_details}, _From, State) ->
     #{
         board := Board,
-        players := Players,
+        players := PlayersStructs
+    } = State,
+    %#{ hand := Hand } = maps:get(SPID, PlayersStructs),
+    GameDetails = #{
+        board => Board,
+        players => PlayersStructs
+    },
+    {reply, GameDetails, State};
+% handle_call({get_board, _SPID}, _From,
+%         #{ board := Board } = State) ->
+%     {reply, {ok, Board}, State};
+% handle_call({player_leaves, SPID, _GID}, _From,
+%         #{ players := Players } = State) ->
+%     log({player, SPID, leaves}),
+%     log({all_players, Players}),
+%     {ok, UpdatedPlayers} = remove_player(SPID, Players),
+%     % Check if last player left...
+%     log({updated_players, UpdatedPlayers}),
+%     {reply, ok, State#{
+%         players => UpdatedPlayers
+%     }};
+%% First word!
+handle_call({place_word, SPID, ProposedWord}, _From, #{ board_empty := true } = State) ->
+    #{
+        board := Board,
+        players := PlayersStruct,
         tile_bag := TBag
     } = State,
-    log({submittedboard, SubmittedBoard}),
-    case is_starting_cell_submitted(SubmittedBoard) of
-        true ->
-            case is_valid_word(SubmittedBoard) of
+    %% TODO: how we can we protect nicer than checking each time ?
+    %%       create player statem ?
+    case maps:get(SPID, PlayersStruct, undefined) of
+        undefined ->
+            {reply, {error, bad_spid}, State};
+        PlayerMap ->
+            log({submittedboard, ProposedWord}),
+            case is_proposed_word_in_hand(ProposedWord, PlayerMap) of
                 true ->
+                    case is_starting_cell_submitted(ProposedWord) of
+                        true ->
+                            case is_valid_word(ProposedWord) of
+                                true ->
+                                    UpdatedBoard =
+                                        place_tiles_on_board(ProposedWord, Board),
 
-                    UpdatedBoard =
-                        place_tiles_on_board(SubmittedBoard, Board),
+                                    {NewHand, PlayerMap2} =
+                                        take_tiles_from_hand(PlayerMap, ProposedWord),
+                                    log({new_hand, NewHand}),
+                                    PlayersStruct2 = update_players(SPID, PlayerMap2, PlayersStruct),
 
-                    {ok, PlayerMap} =
-                        get_player(SPID, Players),
-
-                    {NewHand, PlayerMap2} =
-                        take_tiles_from_hand(PlayerMap, SubmittedBoard),
-                    log({new_hand, NewHand}),
-
-                    Players2 = update_players(SPID, PlayerMap2, Players),
-
-                    {NewBag, UpdatedPlayerMap2} =
-                        take_x_from_bag_into_player_hand(
-                            SPID,
-                            number_of_new_tiles_to_take(NewHand),
-                            Players2,
-                            TBag
-                        ),
-
-                    {reply, ok, State#{
-                        tile_bag => NewBag,
-                        board => UpdatedBoard,
-                        players => UpdatedPlayerMap2,
-                        empty => false
-                    }};
+                                    {NewBag, UpdatedPlayerMap2} =
+                                        take_x_from_bag_into_player_hand(
+                                            SPID,
+                                            number_of_new_tiles_to_take(NewHand),
+                                            PlayersStruct2,
+                                            TBag
+                                        ),
+                                    {reply, ok, State#{
+                                        tile_bag => NewBag,
+                                        board => UpdatedBoard,
+                                        players => UpdatedPlayerMap2,
+                                        board_empty => false
+                                    }};
+                                false ->
+                                    {reply, {error, invalid_word}, State}
+                            end;
+                        false ->
+                            {reply, {error, not_starting_square}, State}
+                    end;
                 false ->
-                    {reply, {error, invalid_word}, State}
-            end;
-        false ->
-            {reply, {error, not_starting_square}, State}
+                    {reply, {error, proposed_word_not_in_hand}, State}
+            end
     end;
 %% Consecutive words
-handle_call({place_word, _SPID, SubmittedBoard}, _From, #{ empty := false } = State) ->
+handle_call({place_word, _SPID, ProposedWord}, _From, #{ board_empty := false } = State) ->
     #{
         board := Board,
         players := _Players
@@ -220,19 +268,52 @@ handle_call({place_word, _SPID, SubmittedBoard}, _From, #{ empty := false } = St
     %                    #{value => <<"a">>,x => 8,y => 10}]
     %% NB:
 
-    %% TODO: check SubmittedBoard valid
-    %% TODO: get adjacent tiles connected to SubmittedBoard from Board.
+    %% TODO: check ProposedWord valid
+    %% TODO: get adjacent tiles connected to ProposedWord from Board.
     %%       Are they adjacent to any other tiles? No -> return error
     %% TODO: merge adjacent + SubmitBoard into FullWord.
     %%       Is valid word? No -> Error invalid word
     %% TODO: place word on board
     %% TODO: remove letters from player hand
     %%       update player hand with missing letters from tilebag.
-    UpdatedBoard = place_tiles_on_board(SubmittedBoard, Board),
+    UpdatedBoard = place_tiles_on_board(ProposedWord, Board),
     {reply, ok, State#{
-        board => UpdatedBoard,
-        empty => false
+        board => UpdatedBoard
     }};
+handle_call({print_board}, _From, #{ empty_board := true } = State) ->
+    {reply, empty_board, State};
+handle_call({print_board}, _From, #{ board := Board } = State) ->
+    io:format("\t ", []),
+    [ io:format("~p   ", [X-1]) || X <- lists:seq(1, 16) ],
+    io:format("\n", []),
+    maps:foreach(
+        fun(YK, YV) ->
+            io:format("~p\t", [YK]),
+            maps:foreach(
+                fun(_XK, XV) ->
+                    io:format(" ~p ", [
+                        case XV of
+                            undefined ->
+                                "";
+                            _ ->
+                                [XV]
+                        end
+                    ])
+                end,
+                YV
+            ),
+            io:format("\n")
+        end,
+        Board
+    ),
+    {reply, ok, State};
+handle_call({get_player_info, SPID}, _From, #{ players := PlayersStruct } = State) ->
+    case maps:get(SPID, PlayersStruct, undefined) of
+        undefined ->
+            {reply, {error, bad_spid}, State};
+        PlayerMap ->
+            {reply, PlayerMap, State}
+    end;
 handle_call(_Request, _From, State) ->
     {reply, {error, unknown_call}, State}.
 
@@ -323,53 +404,63 @@ take_random_tile(L) when L > [] ->
     {L1, L2} = lists:split(RandPos, L),
     {lists:last(L1), lists:droplast(L1) ++ L2}.
 
-players_structs([], R) ->
-    lists:reverse(R);
-players_structs([SPID|T], R) when SPID > 0 ->
-    players_structs(T, [players_struct(SPID) | R]).
+players_structs(PlayerIds) ->
+    lists:foldl(
+        fun(PlayerId, Acc) ->
+            Acc#{
+                PlayerId => initial_players_struct()
+            }
+        end,
+        #{},
+        PlayerIds
+    ).
 
-players_struct(SPID) ->
-    {SPID,
-     #{
-        score => 0,
-        hand => [],
-        owned_tiles => [] % {letter, x, y} Ex: {$a, 6, 10}
-     }
+initial_players_struct() ->
+    #{
+       score => 0,
+       hand => [],
+       owned_tiles => [] % {letter, x, y} Ex: {$a, 6, 10}
     }.
 
-get_player(SPID, Players) ->
-    log({get_players, SPID, Players}),
-    {SPID, PlayerMap} = lists:keyfind(SPID, 1, Players),
-    {ok, PlayerMap}.
+%get_player(SPID, Players) ->
+    % log({get_players, SPID, Players}),
+    % {SPID, PlayerMap} = lists:keyfind(SPID, 1, Players),
+    % {ok, PlayerMap}.
 
-remove_player(SPID, Players) ->
-    {ok, lists:keydelete(SPID, 1, Players)}.
+% remove_player(SPID, Players) ->
+%     {ok, lists:keydelete(SPID, 1, Players)}.
 
 %% TODO: encapsulate the amount to take.
 %%       make sure that tiles that're placed on the board
 %%       are removed before calling this function.
-take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag) ->
-    log({take, Amount, tiles, players, Players}),
-    {ok, #{ hand := ExistingHand } = PlayerMap} = get_player(SPID, Players),
+take_x_from_bag_into_player_hand(SPID, HandSize, PlayersStruct, TBag) ->
+    log({take, HandSize, tiles, players, PlayersStruct}),
+    % {ok,  =
+    %     get_player(SPID, PlayersStruct),
+    #{ hand := ExistingHand } = PlayerMap = maps:get(SPID, PlayersStruct),
     case erlang:abs(?HAND_SIZE - length(ExistingHand)) of
-        Amount -> % Pattern Match on Amount requested
-            {ToTake, NewBag} = lists:split(Amount, TBag),
+        HandSize -> % Pattern Match on HandSize requested
+            {ToTake, NewBag} = lists:split(HandSize, TBag),
             {
                 NewBag,
-                update_players(SPID, PlayerMap#{ hand => ToTake ++ ExistingHand }, Players)
+                set_player_hand(SPID, PlayerMap, ToTake ++ ExistingHand, PlayersStruct)
             };
         % TODO: Should we crash, alert, trying to take more
-        % than allowed in hand (7)
+        % than allowed in hand (?HAND_SIZE)
         % Maybe log?
         _BadAmount ->
             {
                 TBag,
-                Players
+                PlayersStruct
             }
     end.
 
-update_players(SPID, PlayerMap, Players) ->
-    lists:keyreplace(SPID, 1, Players, {SPID, PlayerMap}).
+set_player_hand(SPID, PlayerMap, NewHand, PlayersStruct) ->
+    update_players(SPID, PlayerMap#{ hand => NewHand }, PlayersStruct).
+
+update_players(SPID, PlayerMap, PlayersStruct) ->
+    %lists:keyreplace(SPID, 1, PlayersStruct, {SPID, PlayerMap}).
+    maps:put(SPID, PlayerMap, PlayersStruct).
 
 % find_tile_on_board(X, Y, Board) ->
 %     case {lists:keyfind(X, 1, Board), lists:keyfind(Y, 2, Board)} of
@@ -382,7 +473,7 @@ update_players(SPID, PlayerMap, Players) ->
 % place_tile_on_board(X, Y, SPID, Tile, Board) ->
 %     [{X, Y, SPID, Tile}|Board].
 
-take_tiles_from_hand(#{ hand := Hand } = Player, SubmittedBoard) ->
+take_tiles_from_hand(#{ hand := Hand } = Player, ProposedWord) ->
     NewHand =
         lists:foldl(
             fun(SubmitLetter, HandAcc) ->
@@ -391,7 +482,7 @@ take_tiles_from_hand(#{ hand := Hand } = Player, SubmittedBoard) ->
                 HandAcc -- [LetterValue]
             end,
             Hand,
-            SubmittedBoard
+            ProposedWord
         ),
     {
         NewHand,
@@ -401,23 +492,44 @@ take_tiles_from_hand(#{ hand := Hand } = Player, SubmittedBoard) ->
 log(X) ->
     io:format("~p ~p~n", [?MODULE, X]).
 
-is_starting_cell_submitted(SubmittedBoard) ->
+is_proposed_word_in_hand(ProposedWord, #{ hand := Hand }) ->
+    lists:all(
+        fun
+        (#{ value := V }) ->
+            lists:member(V, Hand)
+        end,
+        ProposedWord
+    ).
+
+is_starting_cell_submitted(ProposedWord) ->
     lists:any(
         fun
-        (#{ y := 8, x := 8 }) ->
+        (#{ y := 8, x := 8, value := V }) when V /= [] ->
             true;
         (_) ->
             false
         end,
-        SubmittedBoard
+        ProposedWord
     ).
 
-is_valid_word(_SubmittedBoard) ->
+is_valid_word(ProposedWord) ->
     %% TODO: is_valid_letter
     %% TODO: check dictionary API
+    %is_all_letters(ProposedWord).
     true.
 
-place_tiles_on_board(SubmittedBoard, Board) ->
+% is_all_letters(ProposedWord) ->
+%     lists:all(
+%         fun
+%         (#{ value := V }) when V >= 97 orelse V =< 122 ->
+%             true;
+%         (_) ->
+%             false
+%         end,
+%         ProposedWord
+%     ).
+
+place_tiles_on_board(ProposedWord, Board) ->
     lists:foldl(
         fun(SubmitLetter, BoardAcc) ->
             #{
@@ -439,7 +551,7 @@ place_tiles_on_board(SubmittedBoard, Board) ->
             end
         end,
         Board,
-        SubmittedBoard
+        ProposedWord
     ).
 
 number_of_new_tiles_to_take(ExistingHandAfterSubmitted) ->

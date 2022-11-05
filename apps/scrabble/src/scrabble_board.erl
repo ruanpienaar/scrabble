@@ -6,6 +6,7 @@
     init_game_board/0
 ]).
 
+-spec init_game_board() -> scrabble:board().
 init_game_board() ->
     lists:foldl(
         fun(Y, YAcc) ->
