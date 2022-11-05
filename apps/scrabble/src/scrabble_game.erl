@@ -252,7 +252,7 @@ handle_call({place_word, SPID, ProposedWord}, _From, State) ->
                                     {reply, {error, invalid_word}, State}
                             end;
                         false ->
-                            {reply, {error, not_starting_square}, State}
+                            {reply, {error, invalid_placement}, State}
                     end;
                 false ->
                     {reply, {error, proposed_word_not_in_hand}, State}
@@ -433,17 +433,28 @@ is_proposed_word_in_hand(ProposedWord, #{ hand := Hand }) ->
         ProposedWord
     ).
 
-valid_placement(_Board, _BoardEmpty=false, _ProposedWord) ->
-
-
-
-    %% TODO: check if connected to other word?
-    true;
+valid_placement(Board, _BoardEmpty=false, ProposedWord) ->
+    % my first and horrible attempt at matrix checking code...
+    % Possibly BREAK once true found.
+    lists:any(
+        fun
+        (#{ y := Y, x := X }) ->
+            %% check adjacent squares
+            % x - 1 || x + 1 ( is a ExistnigLetter ) ?
+            % y - 1 || y + 1 ( is a ExistnigLetter ) ?
+            % x == ExistingLetter || y == ExistnigLetter
+            maps:get(X-1, maps:get(Y, Board, #{}), undefined) /= undefined orelse
+            maps:get(X+1, maps:get(Y, Board, #{}), undefined) /= undefined orelse
+            maps:get(X, maps:get(Y-1, Board, #{}), undefined) /= undefined orelse
+            maps:get(X, maps:get(Y+1, Board, #{}), undefined) /= undefined
+        end,
+        ProposedWord
+    );
 valid_placement(_Board, _BoardEmpty=true, ProposedWord) ->
     %% Any tile over starting position
     lists:any(
         fun
-        (#{ y := 8, x := 8, value := V }) when V /= [] ->
+        (#{ y := 8, x := 8 }) ->
             true;
         (_) ->
             false

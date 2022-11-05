@@ -575,7 +575,7 @@ place_word() ->
     ?assertMatch(
         {
             reply,
-            {error, not_starting_square},
+            {error, invalid_placement},
             #{
                 board := Board,
                 board_empty := true,
@@ -684,7 +684,32 @@ place_word() ->
         length(TileBag3)
     ),
 
-    ok.
+    %% Try invalid intersect ( doesn't connect to existing words on board )
+    %% Failed intersect from 1x-8x
+
+    SucessPlacedWord3 = scrabble_game:handle_call(
+        {
+            place_word,
+            <<"playerid1">>,
+            element(1,
+                lists:foldl(
+                    fun(HandLetter, {Acc, Pos}) ->
+                        case Pos =:= 8 of
+                            true ->
+                                {Acc, Pos+1};
+                            false ->
+                                {lists:append(Acc, [#{ x => Pos, y => 1, value => HandLetter }]), Pos+1}
+                        end
+                    end,
+                    {[], 1},
+                    Hand3
+                )
+            )
+        },
+        from,
+        State3
+    ),
+    {reply, {error, invalid_placement}, State3} = SucessPlacedWord3.
 
 
 find_letter_thats_not_in_hand(Hand) ->
