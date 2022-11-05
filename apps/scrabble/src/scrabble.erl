@@ -17,6 +17,10 @@
 -type player_id() :: binary().
 -type player_id_list() :: list( player_id() ).
 -type letters() :: list(letter()).
+-type board_letter_details() :: #{
+    scored => boolean(),
+    letter => letter()
+}.
 -type letter() :: iolist().
 -type board_letter() :: #{ x => pos_integer(), y => pos_integer(), value => letter() }.
 -type word() :: list(board_letter()).

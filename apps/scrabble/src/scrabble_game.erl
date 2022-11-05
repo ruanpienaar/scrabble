@@ -35,8 +35,6 @@
 ]).
 -endif.
 
--define(HAND_SIZE, 7).
-
 -behaviour(gen_server).
 -export([
     init/1,
