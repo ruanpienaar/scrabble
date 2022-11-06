@@ -59,7 +59,16 @@ $(document).ready(function(){
     function onMessage(event) {
         //console.log(event.data);
         var json_data = JSON.parse(event.data);
+
+        if (json_data.hasOwnProperty('response') && json_data.response == 'error') {
+            alert(json_data.reason);
+            $('#error').html(json_data.reason);
+        } else {
+            $('#error').html('');
+        }
+
         if(json_data.hasOwnProperty('response')) {
+
             if(json_data.response == 'ping_reply'){
                 //
             } else if (json_data.response == 'refresh_board') {

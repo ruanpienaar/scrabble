@@ -18,9 +18,9 @@ websocket_init(#{ req := Req } = State) ->
         try
             cowboy_req:match_qs([a, gid, spid], Req)
         catch
-            C:E ->
+            C:E:S ->
                 io:format("[~p] Crash ~p ~p ~p~n",
-                         [?MODULE, C, E, erlang:get_stacktrace()]),
+                         [?MODULE, C, E, S]),
                 #{}
         end,
     % io:format("[~p] URI MAP ~p~n", [?MODULE, UriMap]),

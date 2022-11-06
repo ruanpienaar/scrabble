@@ -24,8 +24,9 @@ action(A = {player_ready, _SPID, GID}) ->
 action(A = {game_ready, GID}) ->
     publish({game_status, GID}, A);
 action(A = {game_starting, GID}) ->
-    publish({game_status, GID}, A).
-
+    publish({game_status, GID}, A);
+action(A= {word_placed, GID}) ->
+    publish({game_board_update, GID}, A).
 % action({node_connected, Node, Cookie}) ->
 %     publish({node_events}, {node_connected, Node, Cookie});
 % action({node_disconnected, Node, Cookie}) ->
@@ -46,6 +47,8 @@ subscribe(Topic = active_games) ->
 subscribe(Topic = {game_players, _GID}) ->
     gproc:reg({p, l, {?MODULE, Topic}});
 subscribe(Topic = {game_status, _GID}) ->
+    gproc:reg({p, l, {?MODULE, Topic}});
+subscribe(Topic = {game_board_update, _GID}) ->
     gproc:reg({p, l, {?MODULE, Topic}}).
 
 publish(Topic = lobby_players, Data) ->
@@ -57,6 +60,8 @@ publish(Topic = active_games, Data) ->
 publish(Topic = {game_players, _GID}, Data) ->
     gproc:send({p, l, {?MODULE, Topic}}, {?MODULE, Topic, Data});
 publish(Topic = {game_status, _GID}, Data) ->
+    gproc:send({p, l, {?MODULE, Topic}}, {?MODULE, Topic, Data});
+publish(Topic = {game_board_update, _GID}, Data) ->
     gproc:send({p, l, {?MODULE, Topic}}, {?MODULE, Topic, Data}).
 
 %% ----------

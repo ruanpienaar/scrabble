@@ -71,7 +71,8 @@ terminate(_State, _HandlerState, _Reason) ->
 handle_msg(ping) ->
     <<"pong">>;
 handle_msg(ReqJson) ->
-    io:format("ReqJson ~p\n", [ReqJson]),
+    %% TODO: LOG
+    % io:format("ReqJson ~p\n", [ReqJson]),
     Json = jsx:decode(ReqJson),
     handle_decoded(Json).
 

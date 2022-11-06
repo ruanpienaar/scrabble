@@ -9,10 +9,12 @@
 
 -export([
     name/1,
+    safe_game_id/1,
     start_link/2,
     % player_start/2,
     %player_take_x_tiles/3,
     %player_places_tile/5,
+    get_player_info/2,
     get_game_details/1,
     %get_board/2,
     %player_leaves/3
@@ -22,7 +24,6 @@
 
 -ifdef(TEST).
 -export([
-%     get_player_info/2
 %     tile_distribution/0,
 %     duplicate_tiles/2,
 %     % letter_score/1,
@@ -62,6 +63,13 @@
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
 
+safe_game_id(GID) when is_binary(GID) ->
+    safe_game_id(binary_to_list(GID));
+safe_game_id(GID) when is_list(GID) ->
+    list_to_integer(GID);
+safe_game_id(GID) when is_integer(GID) ->
+    GID.
+
 -spec start_link(scrabble:game_id(), scrabble:player_list()) -> {ok, pid()}.
 start_link(GID, PlayerList)
         when length(PlayerList) >= 1 andalso
@@ -91,10 +99,11 @@ place_word(Pid, SPID, ProposedWord) ->
     gen_server:call(Pid, {?FUNCTION_NAME, SPID, ProposedWord}).
 
 print_board(Pid) ->
+    _ = scrabble_notify:action({word_placed, 1}),
     gen_server:call(Pid, {?FUNCTION_NAME}).
 
-% get_player_info(Pid, SPID) ->
-%     gen_server:call(Pid, {?FUNCTION_NAME, SPID}).
+get_player_info(Pid, SPID) ->
+    gen_server:call(Pid, {?FUNCTION_NAME, SPID}).
 
 % -----------------
 % Data API
@@ -465,7 +474,7 @@ valid_placement(_Board, _BoardEmpty=true, ProposedWord) ->
 is_valid_word(_ProposedWord) ->
     %% TODO: is_valid_letter
     %% TODO: check dictionary API
-    %is_all_letters(ProposedWord).
+    %% TODO: check all adjacent words for validity.
     true.
 
 % is_all_letters(ProposedWord) ->
