@@ -106,7 +106,9 @@
     tile_bag => letters(),
     players => player_maps(),
     board => board(),
-    board_empty => boolean()
+    board_empty => boolean(),
+    player_turn_order => list(player_id()),
+    player_turn => undefined | player_id()
 }.
 
 -export_type([

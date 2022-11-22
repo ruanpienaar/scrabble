@@ -2,6 +2,9 @@
 %% TODO: migrate player related code to scrabble_player.
 %%       Same for hand
 %% TODO: create scrabble_score.erl
+%% TODO: should this code be a gen_statem ?
+%% TODO: do we place all app logic in 1 gen_statem?
+%%       lobby/wait/game/scoreboard?
 
 -module(scrabble_game).
 
@@ -32,7 +35,7 @@
 %     take_random_tile/1,
 %     players_structs/2,
 %     players_struct/1,
-%     take_x_from_bag_into_player_hand/4
+%     take_tiles_after_turn_end/4
 ]).
 -endif.
 
@@ -59,6 +62,8 @@
 %% - get game details ( players, boards, scores )
 
 
+%% the naming is poor. dynamic atoms are not a good idea.
+%% We'll reach a hard limit.
 % scrabble_game_1, scrabble_game_2, scrabble_game_3
 name(GID) ->
     list_to_atom(atom_to_list(?MODULE)++"_"++integer_to_list(GID)).
@@ -123,53 +128,53 @@ get_player_info(Pid, SPID) ->
 % ok = scrabble_game:player_take_x_tiles(Pid, 1, ?HAND_SIZE),
 -spec init(scrabble:player_id_list()) -> scrabble:scrabble_game_gs_data().
 init(PlayerIds) when is_list(PlayerIds) ->
-    Tiles = scrabble_board:tile_distribution(),
-    TileBag = shuffle_tiles(Tiles),
     PlayersStructs = players_structs(PlayerIds),
     GameBoard = scrabble_board:init_game_board(),
-    InitialState = (initial_state_data())#{
-        tile_bag => TileBag,
-        players => PlayersStructs,
-        board => GameBoard
-    },
-    % log({tilebag, TileBag}),
-    % log({players, PlayersStructs}),
-    % log({board, GameBoard}),
+    State1 = set_player_turn_order(
+        (initial_state_data())#{
+            tile_bag => init_shuffled_tile_bag(),
+            players => PlayersStructs,
+            board => GameBoard
+        }
+    ),
+    #{ tile_bag := ShuffledTileBag } = State1,
+    log({player_turn, maps:get(player_turn, State1)}),
+    log({player_turn_order, maps:get(player_turn_order, State1)}),
     % check who starts first
     % then get players tiles
-    {NewBag, UpdatedPlayers} =
-        lists:foldl(
-            fun(SPID, {AccTileBag, AccPlayers}) ->
-                take_x_from_bag_into_player_hand(
-                    SPID,
-                    ?HAND_SIZE,
-                    AccPlayers,
-                    AccTileBag
-                )
-            end,
-            {TileBag, PlayersStructs},
+    {AllPlayersTakenHandFromTileBag, UpdatedPlayers} =
+        all_player_get_tiles_from_bag(
+            {ShuffledTileBag, PlayersStructs},
+            ?HAND_SIZE,
             PlayerIds
         ),
-    % {NewBag, UpdatedPlayers} =
-    %     take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
+    % {AllPlayersTakenHandFromTileBag, UpdatedPlayers} =
+    %     take_tiles_after_turn_end(SPID, Amount, Players, TBag),
     %% TODO: simplify code in init/1 with player_take_x_tiles/3
-    {ok, InitialState#{
-        tile_bag => NewBag,
+    {ok, State1#{
+        tile_bag => AllPlayersTakenHandFromTileBag,
         players => UpdatedPlayers
     }}.
+
+init_shuffled_tile_bag() ->
+    shuffle_tiles(
+        scrabble_board:tile_distribution()
+    ).
 
 initial_state_data() ->
     #{
         tile_bag => [],
         players => [],
         board => #{},
-        board_empty => true
+        board_empty => true,
+        player_turn_order => [],
+        player_turn => undefined
     }.
 
 % handle_call({player_take_x_tiles, SPID, Amount}, _From,
 %             #{ players := Players, tile_bag := TBag } = State) ->
 %     {NewBag, UpdatedPlayers} =
-%         take_x_from_bag_into_player_hand(SPID, Amount, Players, TBag),
+%         take_tiles_after_turn_end(SPID, Amount, Players, TBag),
 %     {reply, ok, State#{
 %         tile_bag => NewBag,
 %         players => UpdatedPlayers
@@ -192,12 +197,14 @@ initial_state_data() ->
 handle_call({get_game_details}, _From, State) ->
     #{
         board := Board,
-        players := PlayersStructs
+        players := PlayersStructs,
+        player_turn := PlayerTurn
     } = State,
     %#{ hand := Hand } = maps:get(SPID, PlayersStructs),
     GameDetails = #{
         board => Board,
-        players => PlayersStructs
+        players => PlayersStructs,
+        player_turn => PlayerTurn
     },
     {reply, GameDetails, State};
 % handle_call({get_board, _SPID}, _From,
@@ -213,59 +220,67 @@ handle_call({get_game_details}, _From, State) ->
 %     {reply, ok, State#{
 %         players => UpdatedPlayers
 %     }};
-%% First word!
-handle_call({place_word, SPID, ProposedWord}, _From, State) ->
+handle_call({place_word, SPID, ProposedWord}, _From, #{ player_turn := SPID } = State) ->
     #{
         board_empty := BE,
         board := Board,
         players := PlayersStruct,
-        tile_bag := TBag
+        tile_bag := TBag,
+        player_turn := SPID
     } = State,
-    %% TODO: how do we simplify player checking?
-    %%       create player statem ?
-    case maps:get(SPID, PlayersStruct, undefined) of
-        undefined ->
-            {reply, {error, bad_spid}, State};
-        PlayerMap ->
-            log({submittedboard, ProposedWord}),
-            case is_proposed_word_in_hand(ProposedWord, PlayerMap) of
+    PlayerMap = maps:get(SPID, PlayersStruct),
+    log({submittedboard, ProposedWord}),
+    case is_proposed_word_in_hand(ProposedWord, PlayerMap) of
+        true ->
+            case valid_placement(Board, BE, ProposedWord) of
                 true ->
-                    case valid_placement(Board, BE, ProposedWord) of
+                    case is_valid_word(ProposedWord) of
                         true ->
-                            case is_valid_word(ProposedWord) of
-                                true ->
-                                    UpdatedBoard =
-                                        place_tiles_on_board(ProposedWord, Board),
-                                    {NewHand, #{ score := CurrentPlayerScore } = PlayerMap2} =
-                                        take_tiles_from_hand(PlayerMap, ProposedWord),
-                                    NewPlayerScore =
-                                        CurrentPlayerScore +
-                                        scrabble_score:word_score(Board, ProposedWord),
-                                    PlayerMap3 = PlayerMap2#{ score => NewPlayerScore },
-                                    log({new_hand, NewHand}),
-                                    PlayersStruct2 = update_players(SPID, PlayerMap3, PlayersStruct),
-                                    {NewBag, UpdatedPlayerMap2} =
-                                        take_x_from_bag_into_player_hand(
-                                            SPID,
-                                            number_of_new_tiles_to_take(NewHand),
-                                            PlayersStruct2,
-                                            TBag
-                                        ),
-                                    {reply, ok, State#{
-                                        tile_bag => NewBag,
-                                        board => UpdatedBoard,
-                                        players => UpdatedPlayerMap2,
-                                        board_empty => false
-                                    }};
-                                false ->
-                                    {reply, {error, invalid_word}, State}
-                            end;
+                            UpdatedBoard =
+                                place_tiles_on_board(ProposedWord, Board),
+                            {NewHand, #{ score := CurrentPlayerScore } = PlayerMap2} =
+                                take_tiles_from_hand(PlayerMap, ProposedWord),
+                            NewPlayerScore =
+                                CurrentPlayerScore +
+                                scrabble_score:word_score(Board, ProposedWord),
+                            PlayerMap3 = PlayerMap2#{ score => NewPlayerScore },
+                            log({new_hand, NewHand}),
+                            PlayersStruct2 = update_players(SPID, PlayerMap3, PlayersStruct),
+                            {NewBag, UpdatedPlayerMap2} =
+                                player_get_tiles_from_bag(
+                                    SPID,
+                                    number_of_new_tiles_to_take(NewHand),
+                                    PlayersStruct2,
+                                    TBag
+                                ),
+                            {reply, ok, State#{
+                                tile_bag => NewBag,
+                                board => UpdatedBoard,
+                                players => UpdatedPlayerMap2,
+                                board_empty => false
+                            }};
                         false ->
-                            {reply, {error, invalid_placement}, State}
+                            {reply, {error, invalid_word}, State}
                     end;
                 false ->
-                    {reply, {error, proposed_word_not_in_hand}, State}
-            end
+                    {reply, {error, invalid_placement}, State}
+            end;
+        false ->
+            {reply, {error, proposed_word_not_in_hand}, State}
+    end;
+handle_call({place_word, SPID, ProposedWord}, _From, State) ->
+    % case maps:get(SPID, PlayersStruct, undefined) of
+    %% TODO: how do we simplify player checking? create player statem ?
+    %% TODO: how to test? ( maybe player_turn and player leaves? -)
+    %%       but then a player who leaves, should update next player turn
+    %% TODO: add {reply, {error, bad_spid}, State};
+    case maps:get(player_turn, State) =/= SPID of
+        true ->
+            log({player, SPID, out_of_turn}),
+            {reply, {error, player_out_of_turn}, State};
+        false ->
+            log({place_word_issue, SPID, ProposedWord, State}),
+            {reply, {error, internal_error}, State}
     end;
 handle_call({print_board}, _From, #{ empty_board := true } = State) ->
     {reply, empty_board, State};
@@ -319,7 +334,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% -------------------------------------------
 %% Internal
 
-
 shuffle_tiles(Tiles) ->
     shuffle_tiles(Tiles, []).
 
@@ -363,6 +377,118 @@ initial_players_struct() ->
        owned_tiles => [] % {letter, x, y} Ex: {$a, 6, 10}
     }.
 
+all_player_get_tiles_from_bag({TileBag, PlayersStructs}, NumTilesToTake, PlayerIds) ->
+    lists:foldl(
+        fun(SPID, {AccTileBag, AccPlayers}) ->
+            take_tiles_at_start(
+                SPID,
+                %% TODO: should we check player hand size?
+                %%       should be 0 at startup.
+                NumTilesToTake,
+                AccPlayers,
+                AccTileBag
+            )
+        end,
+        {TileBag, PlayersStructs},
+        PlayerIds
+    ).
+
+%% TODO: could potentially just be
+%%       player_file_hand_tiles(SPID, State)
+%% This function seems superfluous now.
+player_get_tiles_from_bag(
+    SPID, NumTilesToTake, PlayersStruct2, TBag) ->
+    take_tiles_after_turn_end(
+        SPID,
+        NumTilesToTake,% number_of_new_tiles_to_take(NewHand),
+        PlayersStruct2,
+        TBag
+    ).
+
+% [player1, player2]
+set_player_turn_order(
+        #{
+            players := PlayersStructs,
+            tile_bag := ShuffledTileBag
+        } = State
+    ) ->
+    log({tile_bag, ShuffledTileBag}),
+    %% Player tile with distance closest to A
+    %% starts
+    %% Any player with blank tile, goes first!
+    % Take Leaders/Draw players,
+    % and run function again, return tiles
+    %% shuffle bag, pick tiles for players that drawed.
+    %% until we have a clear starter/starting-order.
+    %% each player taking 1 tile:
+    {_, UpdatedPlayers} =
+        all_player_get_tiles_from_bag(
+            {ShuffledTileBag, PlayersStructs},
+            ?START_SIZE,
+            maps:keys(PlayersStructs)
+        ),
+    log({players_took_one_tile, UpdatedPlayers}),
+    PlayerScores =
+        maps:to_list(
+            maps:map(
+                fun(SPID, #{ hand := [Letter] }) ->
+                    Score = starting_letter_score(Letter),
+                    log({SPID, letter, [Letter], score, Score}),
+                    Score
+                end,
+                UpdatedPlayers
+            )
+        ),
+    log({player_scores, PlayerScores}),
+    PlayerTurnOrder =
+        lists:sort(
+            fun({_SPID1, Distance1}, {_SPID2, Distance2}) ->
+                Distance1 < Distance2
+            end,
+            PlayerScores
+        ),
+    log({player_turn_order, PlayerTurnOrder}),
+    %% case count of players > 1
+    %% minimum case for re-attempt is if shortest(winner) and second place
+    %% has the same distance, then re-do the pick-1 and counting
+    %% else just proceed
+    case maps:size(UpdatedPlayers) >= 2 of
+        true ->
+            %% check for a tie.
+            [{PlayerX, ScoreX}, {PlayerY, ScoreY}| _] = PlayerTurnOrder,
+            case ScoreX =:= ScoreY of
+                true ->
+                    %% redo tile drawing again!
+                    log({start_score_draw, {PlayerX, ScoreX}, {PlayerY, ScoreY} }),
+                    %% reshuffle-bag!
+                    set_player_turn_order(
+                        State#{ tile_bag => init_shuffled_tile_bag() }
+                    );
+                false ->
+                    complete_player_election(State, PlayerTurnOrder)
+            end;
+        false ->
+            complete_player_election(State, PlayerTurnOrder)
+    end.
+
+complete_player_election(State, PlayerTurnOrder) ->
+    %% take back each player hand, and reshuffle.
+    PlayerTurnOrder2 = lists:map(
+        fun({SPID, _}) -> SPID end,
+        PlayerTurnOrder
+    ),
+    PlayerTurn = hd(PlayerTurnOrder2),
+    State#{
+        tile_bag => init_shuffled_tile_bag(),
+        player_turn_order => PlayerTurnOrder2,
+        player_turn => PlayerTurn
+    }.
+
+starting_letter_score(blank) ->
+    -1;
+starting_letter_score(Letter) ->
+    abs(Letter - $a).
+
 %get_player(SPID, Players) ->
     % log({get_players, SPID, Players}),
     % {SPID, PlayerMap} = lists:keyfind(SPID, 1, Players),
@@ -371,11 +497,20 @@ initial_players_struct() ->
 % remove_player(SPID, Players) ->
 %     {ok, lists:keydelete(SPID, 1, Players)}.
 
+take_tiles_at_start(SPID, HandSize, PlayersStruct, TBag) ->
+    log({SPID, take_tiles_at_start, HandSize, tiles, players, PlayersStruct}),
+    #{ hand := ExistingHand } = PlayerMap = maps:get(SPID, PlayersStruct),
+    {ToTake, NewBag} = lists:split(HandSize, TBag),
+    {
+        NewBag,
+        set_player_hand(SPID, PlayerMap, ToTake ++ ExistingHand, PlayersStruct)
+    }.
+
 %% TODO: encapsulate the amount to take.
 %%       make sure that tiles that're placed on the board
 %%       are removed before calling this function.
-take_x_from_bag_into_player_hand(SPID, HandSize, PlayersStruct, TBag) ->
-    log({take, HandSize, tiles, players, PlayersStruct}),
+take_tiles_after_turn_end(SPID, HandSize, PlayersStruct, TBag) ->
+    log({SPID, take_tiles_after_turn_end, HandSize, tiles, players, PlayersStruct}),
     % {ok,  =
     %     get_player(SPID, PlayersStruct),
     #{ hand := ExistingHand } = PlayerMap = maps:get(SPID, PlayersStruct),

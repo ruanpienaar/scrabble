@@ -25,3 +25,4 @@
 
 -define(BOARD_TILE_UNSET, undefined).
 -define(HAND_SIZE, 7).
+-define(START_SIZE, 1).

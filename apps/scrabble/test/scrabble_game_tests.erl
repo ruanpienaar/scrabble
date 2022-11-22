@@ -50,111 +50,153 @@ start_link() ->
             <<"playerid2">>
         ])
     ),
-
-    ProcStateData = sys:get_state(
+    State = sys:get_state(
         scrabble_game:name(?GAME_ID)
     ),
     ?assertMatch(
         #{board :=
-               #{1 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 2 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 3 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 4 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 5 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 6 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 7 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 8 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 9 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 10 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 11 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 12 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 13 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 14 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined},
-                 15 :=
-                     #{1 := undefined,2 := undefined,3 := undefined,4 := undefined,
-                       5 := undefined,6 := undefined,7 := undefined,8 := undefined,
-                       9 := undefined,10 := undefined,11 := undefined,12 := undefined,
-                       13 := undefined,14 := undefined,15 := undefined}},
-           board_empty := true,
-           players := #{
-                <<"playerid1">> :=
-                    #{hand := _, owned_tiles := [], score := 0},
-                <<"playerid2">> :=
-                    #{hand := _, owned_tiles := [], score := 0}
-           },
-           tile_bag :=
-               _
-        },
-        ProcStateData
+           #{1 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             2 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             3 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             4 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             5 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             6 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             7 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             8 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             9 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             10 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             11 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             12 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             13 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             14 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined},
+             15 :=
+                 #{1 := undefined,2 := undefined,3 := undefined,
+                   4 := undefined,5 := undefined,6 := undefined,
+                   7 := undefined,8 := undefined,9 := undefined,
+                   10 := undefined,11 := undefined,
+                   12 := undefined,13 := undefined,
+                   14 := undefined,15 := undefined}},
+       board_empty := true,
+       player_turn := _,
+       player_turn_order := _,
+       players :=
+           #{<<"playerid1">> :=
+                 #{hand := _,owned_tiles := [],score := 0},
+             <<"playerid2">> :=
+                 #{hand := _,owned_tiles := [],score := 0}},
+       tile_bag := _
+       },
+       State
     ),
+    %% check player_turn_order, and player_turn
+    #{
+        player_turn_order := PTO,
+        player_turn := PT
+    } = State,
+    true =
+        (
+        PTO =:= [<<"playerid2">>, <<"playerid1">>] orelse
+        PTO =:= [<<"playerid1">>, <<"playerid2">>]
+       ) andalso
+       ( PT =:= <<"playerid1">> orelse
+         PT =:= <<"playerid2">>
+       ),
 
     ?assertEqual(
         86,
-        length(maps:get(tile_bag, ProcStateData))
+        length(maps:get(tile_bag, State))
     ),
     ?assertEqual(
         7,
-        length(maps:get(hand, maps:get(<<"playerid1">>, maps:get(players, ProcStateData))))
+        length(maps:get(hand, maps:get(<<"playerid1">>, maps:get(players, State))))
     ),
     ?assertEqual(
         7,
-        length(maps:get(hand, maps:get(<<"playerid2">>, maps:get(players, ProcStateData))))
+        length(maps:get(hand, maps:get(<<"playerid2">>, maps:get(players, State))))
     ).
 
 % gs_instance_player_take_x_tiles() ->
@@ -519,10 +561,22 @@ get_game_details() ->
 place_word() ->
     {ok, #{
         board := Board,
-        tile_bag := TBag
+        tile_bag := TBag,
+        player_turn := _,
+        player_turn_order := _
     } = State} = scrabble_game:init([
         <<"playerid1">>
     ]),
+    #{
+        player_turn_order := PTO,
+        player_turn := PT
+    } = State,
+    true =
+        (
+        PTO =:= [<<"playerid1">>]
+       ) andalso
+       ( PT =:= <<"playerid1">>
+       ),
     ?assertEqual(
         93,
         length(TBag)
@@ -541,11 +595,12 @@ place_word() ->
         PlayerInfo
     ),
     {reply, #{ hand := Hand }, _} = PlayerInfo,
-    %% Bad player id
+    %% Bad player id - turns out it's player-out-of-turn now.
+    %% TODO: update test to have more than 1 player
     ?assertMatch(
         {
             reply,
-            {error, bad_spid},
+            {error, player_out_of_turn},
             #{
                 board := Board,
                 board_empty := true,
@@ -719,6 +774,30 @@ find_letter_thats_not_in_hand(Hand) ->
         end,
         lists:seq(97, 122)
     ).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 % player_take_x_tiles_handle_call() ->
 %     State =

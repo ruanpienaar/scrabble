@@ -1,0 +1,20 @@
+
+_ = [ scrabble_game:start_link(X, [<<"a">>, <<"b">>]) || X <- lists:seq( 1, 50 ) ].
+_ = [ scrabble_game:start_link(X, [<<"a">>, <<"b">>, <<"c">>]) || X <- lists:seq( 50, 100 ) ].
+_ = [ scrabble_game:start_link(X, [<<"a">>, <<"b">>, <<"c">>, <<"d">>]) || X <- lists:seq( 100, 150 ) ].
+_ = [ scrabble_game:start_link(X, [<<"a">>]) || X <- lists:seq( 150, 200) ].
+
+
+_ = [ scrabble_game:get_player_info(scrabble_game:name(X), <<"a">>) || X <- lists:seq(1, 200) ]
+
+_ = [ scrabble_game:get_player_info(scrabble_game:name(X), <<"a">>) || X <- lists:seq(1, 200) ]
+
+
+_ = [ scrabble_game:place_word(scrabble_game:name(X), <<"a">>, [#{x=>8, y=>8, value=> 97}]) || X <- lists:seq( 1, 200000) ].
+
+
+
+
+
+
+

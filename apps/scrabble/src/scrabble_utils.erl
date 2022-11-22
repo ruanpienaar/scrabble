@@ -1,6 +1,8 @@
 -module(scrabble_utils).
 
--export([ens_int/1]).
+-export([
+    ens_int/1
+]).
 
 ens_int(V) when is_list(V) ->
     list_to_integer(V);
