@@ -15,13 +15,13 @@ start_link() ->
 
 start() ->
     Port = application:get_env(scrabble, http_port, 9876),
-    io:format("......\nStarting cowboy webserver on port ~p\n......\n",[Port]),
+    log("......\nStarting cowboy webserver on port ~p\n......\n",[Port]),
     Dispatch  = cowboy_router:compile( routes() ),
     {ok, Pid} = cowboy:start_clear(?COWBOY_REF,
                                  [{port, Port}],
                                  #{env => #{dispatch => Dispatch}}
                                 ),
-    io:format("Cowboy Pid : ~p\n", [Pid]),
+    log("Cowboy Pid : ~p\n", [Pid]),
     {ok, Pid}.
 
 routes() ->
@@ -44,3 +44,6 @@ routes() ->
 
 stop() ->
     cowboy:stop_listener(?COWBOY_REF).
+
+log(F, A) ->
+    logger:notice(F, A).

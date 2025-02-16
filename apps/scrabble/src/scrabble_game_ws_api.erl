@@ -5,6 +5,8 @@
 
 -module(scrabble_game_ws_api).
 
+-include_lib("kernel/include/logger.hrl").
+
 -export([
     init/2,
     websocket_init/1,
@@ -40,7 +42,7 @@ websocket_init(State) ->
     end.
 
 do_subscribe(GID) ->
-    io:format("[~p] do_subscribe ~n", [?MODULE]),
+    log("[~p] do_subscribe ~n", [?MODULE]),
     true = scrabble_notify:subscribe({game_board_update, GID}).
 
 websocket_handle({text, Msg}, #{ pid := Pid } = State) ->
@@ -51,20 +53,20 @@ websocket_handle({text, Msg}, #{ pid := Pid } = State) ->
             {reply, {text, Json}, State}
     end;
 websocket_handle(Data, State) ->
-    io:format("[~p] websocket handle ~p ~n", [?MODULE, Data]),
+    log("[~p] websocket handle ~p ~n", [?MODULE, Data]),
     {ok, State}.
 
 websocket_info({scrabble_notify, {game_board_update, GID}, {word_placed, GID}}, State) ->
     #{ pid := Pid } = State,
-    io:format("send out to clients!!! self:~p pid:~p", [self(), Pid]),
+    log("send out to clients!!! self:~p pid:~p", [self(), Pid]),
     Json = get_board_create_json_reply(Pid),
     {reply, {text, Json}, State};
 websocket_info(Info, State) ->
-    io:format("[~p - ~p] websocket info ~p ~n", [?MODULE, self(), Info]),
+    log("[~p - ~p] websocket info ~p ~n", [?MODULE, self(), Info]),
     {ok, State}.
 
 terminate(State, HandlerState, Reason) ->
-    io:format("[~p] State ~p, HandlerState ~p, Reason ~p~n",
+    log("[~p] State ~p, HandlerState ~p, Reason ~p~n",
               [?MODULE, State, HandlerState, Reason]),
     ok.
 
@@ -118,14 +120,13 @@ handle_decoded(
         },
         Pid
     ) ->
-    io:format("Tiles: ~p\n", [Tiles]),
+    log("Tiles: ~p\n", [Tiles]),
     case scrabble_game:place_word(Pid, SPID, backend_tile_format(Tiles)) of
         ok ->
-            io:format(" !!! Word placed !!! \n"),
+            % io:format(" !!! Word placed !!! \n"),
             X = scrabble_notify:action({word_placed, GID}),
-            io:format(" !!! published action ~p !!! \n", [X]),
-            % jsx:encode(#{ response => refresh_board });
-            ok;
+            log(" !!! published action ~p !!! \n", [X]),
+            jsx:encode(#{ response => refresh_board });
         {error, Reason} ->
             jsx:encode(#{ response => error, reason => Reason })
     end;
@@ -139,7 +140,7 @@ handle_decoded(
 %     ok = scrabble_game:player_leaves(Pid, SPID, GID),
 %     jsx:encode(#{ redirect => <<"index.html">>});
 handle_decoded(Json, _Pid) ->
-    io:format("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
+    log("[~p] handle_decoded ~p ~n", [?MODULE, Json]),
     jsx:encode(Json).
 
 backend_tile_format(Tiles) ->
@@ -172,3 +173,6 @@ get_board_create_json_reply(Pid) ->
     ),
     % io:format("GameBoardFE ~p\n", [GameBoardFE]),
     jsx:encode(#{ response => #{ game_board => GameBoardFE } }).
+
+log(F, A) ->
+    logger:notice(F, A).

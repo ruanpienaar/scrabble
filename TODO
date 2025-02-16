@@ -39,6 +39,7 @@ Front end:
  ☐ let players rejoin game
 
 Back end:
+ ☐ make lobby websocket ( and others maybe ) reply with a first message: to client: {"lobby_players":[]}, {"lobby_games":[]}
  ✔ Find a way of starting scrabble_game, when scrabble_lobby is set to ready @done (19-07-19 19:17)
  ☐ Disable join game, if game in starting/started state
  ☐ record what time game will start...

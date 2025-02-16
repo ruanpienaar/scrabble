@@ -138,8 +138,8 @@ init(PlayerIds) when is_list(PlayerIds) ->
         }
     ),
     #{ tile_bag := ShuffledTileBag } = State1,
-    log({player_turn, maps:get(player_turn, State1)}),
-    log({player_turn_order, maps:get(player_turn_order, State1)}),
+    _ = log({player_turn, maps:get(player_turn, State1)}),
+    _ = log({player_turn_order, maps:get(player_turn_order, State1)}),
     % check who starts first
     % then get players tiles
     {AllPlayersTakenHandFromTileBag, UpdatedPlayers} =
@@ -212,11 +212,11 @@ handle_call({get_game_details}, _From, State) ->
 %     {reply, {ok, Board}, State};
 % handle_call({player_leaves, SPID, _GID}, _From,
 %         #{ players := Players } = State) ->
-%     log({player, SPID, leaves}),
-%     log({all_players, Players}),
+%     _ = log({player, SPID, leaves}),
+%     _ = log({all_players, Players}),
 %     {ok, UpdatedPlayers} = remove_player(SPID, Players),
 %     % Check if last player left...
-%     log({updated_players, UpdatedPlayers}),
+%     _ = log({updated_players, UpdatedPlayers}),
 %     {reply, ok, State#{
 %         players => UpdatedPlayers
 %     }};
@@ -229,10 +229,10 @@ handle_call({place_word, SPID, ProposedWord}, _From, #{ player_turn := SPID } = 
         player_turn := SPID
     } = State,
     PlayerMap = maps:get(SPID, PlayersStruct),
-    log({submittedboard, ProposedWord}),
+    _ = log({submittedboard, ProposedWord}),
     case is_proposed_word_in_hand(ProposedWord, PlayerMap) of
         true ->
-            case valid_placement(Board, BE, ProposedWord) of
+            case scrabble_board:valid_word_placement(Board, BE, ProposedWord) of
                 true ->
                     case is_valid_word(ProposedWord) of
                         true ->
@@ -244,7 +244,7 @@ handle_call({place_word, SPID, ProposedWord}, _From, #{ player_turn := SPID } = 
                                 CurrentPlayerScore +
                                 scrabble_score:word_score(Board, ProposedWord),
                             PlayerMap3 = PlayerMap2#{ score => NewPlayerScore },
-                            log({new_hand, NewHand}),
+                            _ = log({new_hand, NewHand}),
                             PlayersStruct2 = update_players(SPID, PlayerMap3, PlayersStruct),
                             {NewBag, UpdatedPlayerMap2} =
                                 player_get_tiles_from_bag(
@@ -253,6 +253,7 @@ handle_call({place_word, SPID, ProposedWord}, _From, #{ player_turn := SPID } = 
                                     PlayersStruct2,
                                     TBag
                                 ),
+                            _ = log({updated_player, UpdatedPlayerMap2}),
                             {reply, ok, State#{
                                 tile_bag => NewBag,
                                 board => UpdatedBoard,
@@ -276,10 +277,10 @@ handle_call({place_word, SPID, ProposedWord}, _From, State) ->
     %% TODO: add {reply, {error, bad_spid}, State};
     case maps:get(player_turn, State) =/= SPID of
         true ->
-            log({player, SPID, out_of_turn}),
+            _ = log({player, SPID, out_of_turn}),
             {reply, {error, player_out_of_turn}, State};
         false ->
-            log({place_word_issue, SPID, ProposedWord, State}),
+            _ = log({place_word_issue, SPID, ProposedWord, State}),
             {reply, {error, internal_error}, State}
     end;
 handle_call({print_board}, _From, #{ empty_board := true } = State) ->
@@ -412,7 +413,7 @@ set_player_turn_order(
             tile_bag := ShuffledTileBag
         } = State
     ) ->
-    log({tile_bag, ShuffledTileBag}),
+    _ = log({tile_bag, ShuffledTileBag}),
     %% Player tile with distance closest to A
     %% starts
     %% Any player with blank tile, goes first!
@@ -427,19 +428,19 @@ set_player_turn_order(
             ?START_SIZE,
             maps:keys(PlayersStructs)
         ),
-    log({players_took_one_tile, UpdatedPlayers}),
+    _ = log({players_took_one_tile, UpdatedPlayers}),
     PlayerScores =
         maps:to_list(
             maps:map(
                 fun(SPID, #{ hand := [Letter] }) ->
                     Score = starting_letter_score(Letter),
-                    log({SPID, letter, [Letter], score, Score}),
+                    _ = log({SPID, letter, [Letter], score, Score}),
                     Score
                 end,
                 UpdatedPlayers
             )
         ),
-    log({player_scores, PlayerScores}),
+    _ = log({player_scores, PlayerScores}),
     PlayerTurnOrder =
         lists:sort(
             fun({_SPID1, Distance1}, {_SPID2, Distance2}) ->
@@ -447,7 +448,7 @@ set_player_turn_order(
             end,
             PlayerScores
         ),
-    log({player_turn_order, PlayerTurnOrder}),
+    _ = log({player_turn_order, PlayerTurnOrder}),
     %% case count of players > 1
     %% minimum case for re-attempt is if shortest(winner) and second place
     %% has the same distance, then re-do the pick-1 and counting
@@ -459,7 +460,7 @@ set_player_turn_order(
             case ScoreX =:= ScoreY of
                 true ->
                     %% redo tile drawing again!
-                    log({start_score_draw, {PlayerX, ScoreX}, {PlayerY, ScoreY} }),
+                    _ = log({start_score_draw, {PlayerX, ScoreX}, {PlayerY, ScoreY} }),
                     %% reshuffle-bag!
                     set_player_turn_order(
                         State#{ tile_bag => init_shuffled_tile_bag() }
@@ -498,7 +499,7 @@ starting_letter_score(Letter) ->
 %     {ok, lists:keydelete(SPID, 1, Players)}.
 
 take_tiles_at_start(SPID, HandSize, PlayersStruct, TBag) ->
-    log({SPID, take_tiles_at_start, HandSize, tiles, players, PlayersStruct}),
+    _ = log({SPID, take_tiles_at_start, HandSize, tiles, players, PlayersStruct}),
     #{ hand := ExistingHand } = PlayerMap = maps:get(SPID, PlayersStruct),
     {ToTake, NewBag} = lists:split(HandSize, TBag),
     {
@@ -510,7 +511,7 @@ take_tiles_at_start(SPID, HandSize, PlayersStruct, TBag) ->
 %%       make sure that tiles that're placed on the board
 %%       are removed before calling this function.
 take_tiles_after_turn_end(SPID, HandSize, PlayersStruct, TBag) ->
-    log({SPID, take_tiles_after_turn_end, HandSize, tiles, players, PlayersStruct}),
+    _ = log({SPID, take_tiles_after_turn_end, HandSize, tiles, players, PlayersStruct}),
     % {ok,  =
     %     get_player(SPID, PlayersStruct),
     #{ hand := ExistingHand } = PlayerMap = maps:get(SPID, PlayersStruct),
@@ -554,7 +555,7 @@ take_tiles_from_hand(#{ hand := Hand } = Player, ProposedWord) ->
         lists:foldl(
             fun(SubmitLetter, HandAcc) ->
                 #{ value := LetterValue } = SubmitLetter,
-                log({subtract, HandAcc, [LetterValue]}),
+                _ = log({subtract, HandAcc, [LetterValue]}),
                 HandAcc -- [LetterValue]
             end,
             Hand,
@@ -573,35 +574,6 @@ is_proposed_word_in_hand(ProposedWord, #{ hand := Hand }) ->
         fun
         (#{ value := V }) ->
             lists:member(V, Hand)
-        end,
-        ProposedWord
-    ).
-
-valid_placement(Board, _BoardEmpty=false, ProposedWord) ->
-    % my first and horrible attempt at matrix checking code...
-    % Possibly BREAK once true found.
-    lists:any(
-        fun
-        (#{ y := Y, x := X }) ->
-            %% check adjacent squares
-            % x - 1 || x + 1 ( is a ExistnigLetter ) ?
-            % y - 1 || y + 1 ( is a ExistnigLetter ) ?
-            % x == ExistingLetter || y == ExistnigLetter
-            maps:get(X-1, maps:get(Y, Board, #{}), undefined) /= undefined orelse
-            maps:get(X+1, maps:get(Y, Board, #{}), undefined) /= undefined orelse
-            maps:get(X, maps:get(Y-1, Board, #{}), undefined) /= undefined orelse
-            maps:get(X, maps:get(Y+1, Board, #{}), undefined) /= undefined
-        end,
-        ProposedWord
-    );
-valid_placement(_Board, _BoardEmpty=true, ProposedWord) ->
-    %% Any tile over starting position
-    lists:any(
-        fun
-        (#{ y := 8, x := 8 }) ->
-            true;
-        (_) ->
-            false
         end,
         ProposedWord
     ).

@@ -60,8 +60,8 @@ $(document).ready(function(){
 
     function onOpen(event) {
         console.log(event);
-        get_lobby_players();
-        get_lobby_games();
+        //get_lobby_players();
+        //get_lobby_games();
     }
 
     function onMessage(event) {
